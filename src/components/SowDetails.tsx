@@ -15,6 +15,7 @@ interface SowDetailsProps {
 export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: SowDetailsProps) {
   const tasks = getUpcomingTasksForSow(sow);
   const [showEventModal, setShowEventModal] = useState<EventType | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [eventDate, setEventDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [pigletCount, setPigletCount] = useState('');
 
@@ -41,6 +42,7 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
       case 'PREGNANT': return 'bg-purple-100 text-purple-800';
       case 'PREPARING': return 'bg-orange-100 text-orange-800';
       case 'NURSING': return 'bg-green-100 text-green-800';
+      case 'CULL_SUGGESTED': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -66,7 +68,7 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
           <ArrowLeft className="w-6 h-6 text-gray-700" />
         </button>
         <h2 className="text-lg font-bold text-gray-900">{sow.id}</h2>
-        <button onClick={onDelete} className="p-2 -mr-2 rounded-full hover:bg-red-50 text-red-500">
+        <button onClick={() => setShowDeleteConfirm(true)} className="p-2 -mr-2 rounded-full hover:bg-red-50 text-red-500">
           <Trash2 className="w-5 h-5" />
         </button>
       </div>
@@ -105,7 +107,12 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
                 บันทึกการผสมพันธุ์
               </button>
             )}
-            {sow.status !== 'IDLE' && (
+            {sow.status === 'CULL_SUGGESTED' && (
+              <div className="col-span-2 bg-red-100 text-red-700 font-bold py-2 rounded-xl text-center border border-red-200">
+                แม่หมูตัวนี้ควรคัดออก (ครบ 7 รอบ)
+              </div>
+            )}
+            {(sow.status !== 'IDLE' && sow.status !== 'CULL_SUGGESTED') && (
               <button 
                 onClick={() => setShowEventModal('RETURN_ESTRUS')}
                 className="col-span-2 bg-gray-100 text-gray-700 font-bold py-2 rounded-xl hover:bg-gray-200"
@@ -162,24 +169,40 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
         {/* History */}
         <section>
           <h3 className="font-bold text-gray-800 mb-4">ประวัติกิจกรรม</h3>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div className="relative border-l-2 border-gray-200 ml-3 space-y-6">
-              {[...sow.history].reverse().map((event, i) => (
-                <div key={event.id} className="relative pl-6">
-                  <div className="absolute -left-[9px] top-1 bg-white">
-                    <CheckCircle2 className="w-4 h-4 text-green-500 bg-white rounded-full" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900">{EVENT_LABELS[event.type]}</p>
-                    <p className="text-sm text-gray-500">{formatDate(event.date)}</p>
-                    {event.pigletCount !== undefined && (
-                      <p className="text-sm text-pink-600 font-medium mt-1">จำนวนลูกหมู: {event.pigletCount} ตัว</p>
-                    )}
+          
+          {Array.from(new Set(sow.history.map(e => e.parity || 1))).sort((a, b) => b - a).map(parityLevel => {
+            const eventsInParity = sow.history.filter(e => (e.parity || 1) === parityLevel).reverse();
+            const farrowEvent = eventsInParity.find(e => e.type === 'FARROW');
+            
+            return (
+              <div key={parityLevel} className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-bold text-pink-600 bg-pink-50 px-3 py-1 rounded-lg inline-block">รอบที่ {parityLevel}</h4>
+                  {farrowEvent?.pigletCount !== undefined && (
+                    <span className="text-sm font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-md">ให้ลูก: {farrowEvent.pigletCount} ตัว</span>
+                  )}
+                </div>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                  <div className="relative border-l-2 border-gray-200 ml-3 space-y-6">
+                    {eventsInParity.map((event) => (
+                      <div key={event.id} className="relative pl-6">
+                        <div className="absolute -left-[9px] top-1 bg-white">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 bg-white rounded-full" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900">{EVENT_LABELS[event.type]}</p>
+                          <p className="text-sm text-gray-500">{formatDate(event.date)}</p>
+                          {event.pigletCount !== undefined && (
+                            <p className="text-sm text-pink-600 font-medium mt-1">จำนวนลูกหมู: {event.pigletCount} ตัว</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            );
+          })}
         </section>
       </div>
 
@@ -227,6 +250,40 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
                 บันทึกข้อมูล
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-4">
+                <Trash2 className="w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">ลบข้อมูลแม่หมู?</h3>
+              <p className="text-gray-500 mb-6">
+                คุณแน่ใจหรือไม่ที่จะลบข้อมูลของ <strong className="text-gray-800">{sow.id}</strong>? การกระทำนี้ไม่สามารถย้อนกลับได้
+              </p>
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    onDelete();
+                  }}
+                  className="flex-1 py-3 px-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-md"
+                >
+                  ยืนยันการลบ
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

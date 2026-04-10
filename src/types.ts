@@ -1,4 +1,4 @@
-export type SowStatus = 'IDLE' | 'BRED' | 'PREGNANT' | 'PREPARING' | 'NURSING';
+export type SowStatus = 'IDLE' | 'BRED' | 'PREGNANT' | 'PREPARING' | 'NURSING' | 'CULL_SUGGESTED';
 
 export type EventType = 
   | 'BREED' 
@@ -16,11 +16,13 @@ export interface SowEvent {
   date: string; // ISO string
   notes?: string;
   pigletCount?: number; // Only for FARROW
+  parity?: number;
 }
 
 export interface Sow {
   id: string; // User-defined ID, e.g., "SOW-001"
   status: SowStatus;
+  parity?: number;
   currentCycleStartDate?: string; // Date of last BREED
   farrowDate?: string; // Date of last FARROW
   weanDate?: string; // Date of last WEAN

@@ -21,6 +21,7 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
       case 'PREGNANT': return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'PREPARING': return 'bg-orange-50 text-orange-700 border-orange-200';
       case 'NURSING': return 'bg-green-50 text-green-700 border-green-200';
+      case 'CULL_SUGGESTED': return 'bg-red-50 text-red-700 border-red-200';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
@@ -54,9 +55,14 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
             >
               <div>
                 <h3 className="font-bold text-lg text-gray-900">{sow.id}</h3>
-                <span className={cn("inline-block px-2 py-1 text-xs font-medium rounded-md border mt-1", getStatusColor(sow.status))}>
-                  {STATUS_LABELS[sow.status]}
-                </span>
+                <div className="flex gap-2 mt-1">
+                  <span className={cn("inline-block px-2 py-1 text-xs font-medium rounded-md border", getStatusColor(sow.status))}>
+                    {STATUS_LABELS[sow.status]}
+                  </span>
+                  <span className="inline-block px-2 py-1 text-xs font-medium rounded-md border bg-gray-50 text-gray-600 border-gray-200">
+                    รอบที่ {sow.parity || 1}
+                  </span>
+                </div>
               </div>
               <ChevronRight className="text-gray-400" />
             </div>

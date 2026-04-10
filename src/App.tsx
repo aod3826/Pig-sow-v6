@@ -13,9 +13,20 @@ import { LayoutDashboard, List, PlusCircle } from 'lucide-react';
 import { cn } from './lib/utils';
 
 export default function App() {
-  const { sows, addSow, recordEvent, deleteSow } = useSows();
+  const { sows, addSow, recordEvent, deleteSow, loading } = useSows();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'list' | 'add'>('dashboard');
   const [selectedSowId, setSelectedSowId] = useState<string | null>(null);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
+        <div className="w-full max-w-[430px] bg-gray-50 min-h-screen shadow-xl flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
+          <p className="text-gray-500 font-medium">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     if (selectedSowId) {

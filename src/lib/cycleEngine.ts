@@ -30,6 +30,7 @@ export const STATUS_LABELS: Record<Sow['status'], string> = {
   PREGNANT: 'ตั้งท้อง',
   PREPARING: 'เตรียมคลอด',
   NURSING: 'เลี้ยงลูก',
+  CULL_SUGGESTED: 'ควรคัดออก',
 };
 
 export function getUpcomingTasksForSow(sow: Sow): Task[] {
