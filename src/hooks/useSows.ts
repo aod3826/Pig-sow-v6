@@ -42,6 +42,9 @@ export function useSows() {
 
       const formattedSows: Sow[] = sowsData.map(s => ({
         id: s.id,
+        breed: s.breed,
+        birthDate: s.birth_date,
+        entryDate: s.entry_date,
         status: s.status,
         parity: s.parity,
         currentCycleStartDate: s.current_cycle_start_date,
@@ -54,8 +57,19 @@ export function useSows() {
             type: e.type,
             date: e.date,
             notes: e.notes,
+            parity: e.parity,
+            boarId: e.boar_id,
+            inseminator: e.inseminator,
+            pregResult: e.preg_result,
             pigletCount: e.piglet_count,
-            parity: e.parity
+            liveBorn: e.live_born,
+            stillborn: e.stillborn,
+            mummified: e.mummified,
+            avgBirthWeight: e.avg_birth_weight,
+            weanedCount: e.weaned_count,
+            totalWeanWeight: e.total_wean_weight,
+            cullReason: e.cull_reason,
+            cullPrice: e.cull_price
           }))
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       }));
@@ -68,19 +82,21 @@ export function useSows() {
     }
   };
 
-  const addSow = async (id: string, breedDate: string) => {
+  const addSow = async (id: string, breed: string, birthDate: string, entryDate: string) => {
     const newEventId = crypto.randomUUID();
     const newSow: Sow = {
       id,
-      status: 'BRED',
-      parity: 1,
-      currentCycleStartDate: breedDate,
+      breed,
+      birthDate,
+      entryDate,
+      status: 'IDLE',
+      parity: 0,
       history: [
         {
           id: newEventId,
-          type: 'BREED',
-          date: breedDate,
-          parity: 1,
+          type: 'ENTRY',
+          date: entryDate,
+          parity: 0,
         }
       ]
     };
@@ -92,16 +108,18 @@ export function useSows() {
       try {
         await supabase.from('sows').insert({
           id,
-          status: 'BRED',
-          parity: 1,
-          current_cycle_start_date: breedDate
+          breed,
+          birth_date: birthDate || null,
+          entry_date: entryDate,
+          status: 'IDLE',
+          parity: 0
         });
         await supabase.from('sow_events').insert({
           id: newEventId,
           sow_id: id,
-          type: 'BREED',
-          date: breedDate,
-          parity: 1
+          type: 'ENTRY',
+          date: entryDate,
+          parity: 0
         });
       } catch (error) {
         console.error('Error adding sow to Supabase:', error);
@@ -109,15 +127,15 @@ export function useSows() {
     }
   };
 
-  const recordEvent = async (sowId: string, type: EventType, date: string, pigletCount?: number, notes?: string) => {
+  const recordEvent = async (sowId: string, type: EventType, date: string, payload: Partial<SowEvent> = {}) => {
     let updatedSowData: Partial<Sow> | null = null;
     let newEventData: SowEvent | null = null;
 
     setSows(prev => prev.map(sow => {
       if (sow.id !== sowId) return sow;
 
-      let newParity = sow.parity || 1;
-      if (type === 'BREED' && sow.status === 'IDLE') {
+      let newParity = sow.parity || 0;
+      if (type === 'BREED' && (sow.status === 'IDLE' || sow.status === 'CULL_SUGGESTED')) {
         newParity += 1;
       }
 
@@ -125,9 +143,8 @@ export function useSows() {
         id: crypto.randomUUID(),
         type,
         date,
-        pigletCount,
-        notes,
         parity: newParity,
+        ...payload
       };
 
       const updatedSow = { ...sow, parity: newParity, history: [...sow.history, newEvent] };
@@ -138,8 +155,14 @@ export function useSows() {
           updatedSow.status = 'BRED';
           updatedSow.currentCycleStartDate = date;
           break;
+        case 'CHECK_ESTRUS':
         case 'ULTRASOUND':
-          if (sow.status === 'BRED') updatedSow.status = 'PREGNANT';
+          if (payload.pregResult === 'POSITIVE') {
+            updatedSow.status = 'PREGNANT';
+          } else if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {
+            updatedSow.status = 'IDLE';
+            updatedSow.weanDate = date; // Reset cycle timing
+          }
           break;
         case 'MOVE_TO_PEN':
           if (sow.status === 'PREGNANT') updatedSow.status = 'PREPARING';
@@ -164,6 +187,9 @@ export function useSows() {
           updatedSow.status = 'IDLE';
           updatedSow.weanDate = date; 
           break;
+        case 'CULL':
+          updatedSow.status = 'CULLED';
+          break;
       }
 
       updatedSowData = updatedSow;
@@ -187,9 +213,20 @@ export function useSows() {
           sow_id: sowId,
           type: newEventData.type,
           date: newEventData.date,
-          piglet_count: newEventData.pigletCount,
+          parity: newEventData.parity,
           notes: newEventData.notes,
-          parity: newEventData.parity
+          boar_id: newEventData.boarId,
+          inseminator: newEventData.inseminator,
+          preg_result: newEventData.pregResult,
+          piglet_count: newEventData.pigletCount,
+          live_born: newEventData.liveBorn,
+          stillborn: newEventData.stillborn,
+          mummified: newEventData.mummified,
+          avg_birth_weight: newEventData.avgBirthWeight,
+          weaned_count: newEventData.weanedCount,
+          total_wean_weight: newEventData.totalWeanWeight,
+          cull_reason: newEventData.cullReason,
+          cull_price: newEventData.cullPrice
         });
       } catch (error) {
         console.error('Error recording event to Supabase:', error);

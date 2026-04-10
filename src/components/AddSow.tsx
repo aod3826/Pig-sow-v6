@@ -2,19 +2,23 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 
 interface AddSowProps {
-  onAdd: (id: string, breedDate: string) => void;
+  onAdd: (id: string, breed: string, birthDate: string, entryDate: string) => void;
 }
 
 export default function AddSow({ onAdd }: AddSowProps) {
   const [sowId, setSowId] = useState('');
-  const [breedDate, setBreedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [breed, setBreed] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [entryDate, setEntryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sowId.trim() || !breedDate) return;
-    onAdd(sowId.trim(), new Date(breedDate).toISOString());
+    if (!sowId.trim() || !entryDate) return;
+    onAdd(sowId.trim(), breed.trim(), birthDate ? new Date(birthDate).toISOString() : '', new Date(entryDate).toISOString());
     setSowId('');
-    setBreedDate(format(new Date(), 'yyyy-MM-dd'));
+    setBreed('');
+    setBirthDate('');
+    setEntryDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
   return (
@@ -39,16 +43,43 @@ export default function AddSow({ onAdd }: AddSowProps) {
           </div>
 
           <div>
-            <label htmlFor="breedDate" className="block text-sm font-medium text-gray-700 mb-1">
-              วันที่ผสมพันธุ์ (Breed Date)
+            <label htmlFor="breed" className="block text-sm font-medium text-gray-700 mb-1">
+              สายพันธุ์ (Breed)
+            </label>
+            <input
+              type="text"
+              id="breed"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
+              placeholder="เช่น ลาร์จไวท์, แลนด์เรซ"
+              value={breed}
+              onChange={(e) => setBreed(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-1">
+              วันเกิด (Birth Date) - ไม่บังคับ
             </label>
             <input
               type="date"
-              id="breedDate"
+              id="birthDate"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="entryDate" className="block text-sm font-medium text-gray-700 mb-1">
+              วันที่เข้าเล้า (Entry Date)
+            </label>
+            <input
+              type="date"
+              id="entryDate"
               required
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
-              value={breedDate}
-              onChange={(e) => setBreedDate(e.target.value)}
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
             />
           </div>
 

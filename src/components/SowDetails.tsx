@@ -16,23 +16,33 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
   const tasks = getUpcomingTasksForSow(sow);
   const [showEventModal, setShowEventModal] = useState<EventType | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [eventDate, setEventDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [pigletCount, setPigletCount] = useState('');
+  const [formData, setFormData] = useState<any>({
+    date: format(new Date(), 'yyyy-MM-dd')
+  });
 
   const handleRecordEvent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!showEventModal) return;
     
+    // Parse numeric fields
+    const payload: any = { ...formData };
+    delete payload.date; // Date is passed separately
+    
+    ['pigletCount', 'liveBorn', 'stillborn', 'mummified', 'avgBirthWeight', 'weanedCount', 'totalWeanWeight', 'cullPrice'].forEach(key => {
+      if (payload[key]) {
+        payload[key] = parseFloat(payload[key]);
+      }
+    });
+    
     onRecordEvent(
       sow.id, 
       showEventModal, 
-      new Date(eventDate).toISOString(), 
-      showEventModal === 'FARROW' ? parseInt(pigletCount) : undefined
+      new Date(formData.date).toISOString(), 
+      payload
     );
     
     setShowEventModal(null);
-    setEventDate(format(new Date(), 'yyyy-MM-dd'));
-    setPigletCount('');
+    setFormData({ date: format(new Date(), 'yyyy-MM-dd') });
   };
 
   const getStatusColor = (status: Sow['status']) => {
@@ -43,6 +53,7 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
       case 'PREPARING': return 'bg-orange-100 text-orange-800';
       case 'NURSING': return 'bg-green-100 text-green-800';
       case 'CULL_SUGGESTED': return 'bg-red-100 text-red-800';
+      case 'CULLED': return 'bg-gray-800 text-white';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -98,29 +109,37 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
           )}
           
           {/* Quick Actions */}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            {sow.status === 'IDLE' && (
+          {sow.status !== 'CULLED' && (
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              {sow.status === 'IDLE' && (
+                <button 
+                  onClick={() => setShowEventModal('BREED')}
+                  className="col-span-2 bg-pink-100 text-pink-700 font-bold py-2 rounded-xl hover:bg-pink-200"
+                >
+                  บันทึกการผสมพันธุ์
+                </button>
+              )}
+              {sow.status === 'CULL_SUGGESTED' && (
+                <div className="col-span-2 bg-red-100 text-red-700 font-bold py-2 rounded-xl text-center border border-red-200">
+                  แม่หมูตัวนี้ควรคัดออก (ครบ 7 รอบ)
+                </div>
+              )}
+              {(sow.status !== 'IDLE' && sow.status !== 'CULL_SUGGESTED') && (
+                <button 
+                  onClick={() => setShowEventModal('RETURN_ESTRUS')}
+                  className="col-span-1 bg-gray-100 text-gray-700 font-bold py-2 rounded-xl hover:bg-gray-200"
+                >
+                  กลับสัด
+                </button>
+              )}
               <button 
-                onClick={() => setShowEventModal('BREED')}
-                className="col-span-2 bg-pink-100 text-pink-700 font-bold py-2 rounded-xl hover:bg-pink-200"
+                onClick={() => setShowEventModal('CULL')}
+                className={cn("font-bold py-2 rounded-xl hover:bg-red-200 bg-red-50 text-red-600", (sow.status === 'IDLE' || sow.status === 'CULL_SUGGESTED') ? 'col-span-2' : 'col-span-1')}
               >
-                บันทึกการผสมพันธุ์
+                คัดออก
               </button>
-            )}
-            {sow.status === 'CULL_SUGGESTED' && (
-              <div className="col-span-2 bg-red-100 text-red-700 font-bold py-2 rounded-xl text-center border border-red-200">
-                แม่หมูตัวนี้ควรคัดออก (ครบ 7 รอบ)
-              </div>
-            )}
-            {(sow.status !== 'IDLE' && sow.status !== 'CULL_SUGGESTED') && (
-              <button 
-                onClick={() => setShowEventModal('RETURN_ESTRUS')}
-                className="col-span-2 bg-gray-100 text-gray-700 font-bold py-2 rounded-xl hover:bg-gray-200"
-              >
-                บันทึกการกลับสัด (เริ่มใหม่)
-              </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Timeline (Upcoming Tasks) */}
@@ -192,9 +211,42 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
                         <div>
                           <p className="font-bold text-gray-900">{EVENT_LABELS[event.type]}</p>
                           <p className="text-sm text-gray-500">{formatDate(event.date)}</p>
-                          {event.pigletCount !== undefined && (
-                            <p className="text-sm text-pink-600 font-medium mt-1">จำนวนลูกหมู: {event.pigletCount} ตัว</p>
-                          )}
+                          
+                          {/* Extra Details based on event type */}
+                          <div className="mt-1 text-sm text-gray-700 space-y-0.5">
+                            {event.type === 'BREED' && (
+                              <>
+                                {event.boarId && <p>พ่อพันธุ์: <span className="font-medium">{event.boarId}</span></p>}
+                                {event.inseminator && <p>ผู้ผสม: <span className="font-medium">{event.inseminator}</span></p>}
+                              </>
+                            )}
+                            {(event.type === 'CHECK_ESTRUS' || event.type === 'ULTRASOUND') && event.pregResult && (
+                              <p>ผลตรวจ: <span className={cn("font-bold", event.pregResult === 'POSITIVE' ? 'text-green-600' : 'text-red-600')}>
+                                {event.pregResult === 'POSITIVE' ? 'ติด' : event.pregResult === 'NEGATIVE' ? 'ไม่ติด' : 'แท้ง'}
+                              </span></p>
+                            )}
+                            {event.type === 'FARROW' && (
+                              <div className="bg-pink-50 p-2 rounded-md mt-2">
+                                <p>มีชีวิต: <span className="font-bold text-pink-700">{event.liveBorn || 0}</span> ตัว</p>
+                                <p>ตายโคม: <span className="font-bold text-red-600">{event.stillborn || 0}</span> ตัว</p>
+                                <p>มัมมี่: <span className="font-bold text-orange-600">{event.mummified || 0}</span> ตัว</p>
+                                {event.avgBirthWeight && <p>นน.เฉลี่ย: <span className="font-bold">{event.avgBirthWeight}</span> กก.</p>}
+                              </div>
+                            )}
+                            {event.type === 'WEAN' && (
+                              <div className="bg-green-50 p-2 rounded-md mt-2">
+                                <p>หย่านม: <span className="font-bold text-green-700">{event.weanedCount || 0}</span> ตัว</p>
+                                {event.totalWeanWeight && <p>นน.รวม: <span className="font-bold">{event.totalWeanWeight}</span> กก.</p>}
+                              </div>
+                            )}
+                            {event.type === 'CULL' && (
+                              <div className="bg-red-50 p-2 rounded-md mt-2">
+                                {event.cullReason && <p>สาเหตุ: <span className="font-bold text-red-700">{event.cullReason}</span></p>}
+                                {event.cullPrice && <p>ราคาขาย: <span className="font-bold">{event.cullPrice}</span> บาท</p>}
+                              </div>
+                            )}
+                            {event.notes && <p className="text-gray-500 italic">"{event.notes}"</p>}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -209,7 +261,7 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
       {/* Event Modal */}
       {showEventModal && (
         <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom-full duration-200">
+          <div className="bg-white w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom-full duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-900">บันทึก: {EVENT_LABELS[showEventModal]}</h3>
               <button onClick={() => setShowEventModal(null)} className="text-gray-400 hover:text-gray-600">
@@ -224,24 +276,149 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
                   type="date"
                   required
                   className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
                 />
               </div>
 
-              {showEventModal === 'FARROW' && (
+              {/* Dynamic Fields based on Event Type */}
+              {showEventModal === 'BREED' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">รหัสพ่อพันธุ์ / เบอร์น้ำเชื้อ</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.boarId || ''}
+                      onChange={(e) => setFormData({...formData, boarId: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ผู้ผสม</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.inseminator || ''}
+                      onChange={(e) => setFormData({...formData, inseminator: e.target.value})}
+                    />
+                  </div>
+                </>
+              )}
+
+              {(showEventModal === 'CHECK_ESTRUS' || showEventModal === 'ULTRASOUND') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">จำนวนลูกหมู (ตัว)</label>
-                  <input
-                    type="number"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ผลการตรวจ</label>
+                  <select
                     required
-                    min="0"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
-                    value={pigletCount}
-                    onChange={(e) => setPigletCount(e.target.value)}
-                  />
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none bg-white"
+                    value={formData.pregResult || ''}
+                    onChange={(e) => setFormData({...formData, pregResult: e.target.value})}
+                  >
+                    <option value="" disabled>เลือกผลการตรวจ</option>
+                    <option value="POSITIVE">ติด (ตั้งท้อง)</option>
+                    <option value="NEGATIVE">ไม่ติด</option>
+                    <option value="ABORTION">แท้ง</option>
+                  </select>
                 </div>
               )}
+
+              {showEventModal === 'FARROW' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">มีชีวิต (ตัว)</label>
+                    <input
+                      type="number" required min="0"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.liveBorn || ''}
+                      onChange={(e) => setFormData({...formData, liveBorn: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ตายโคม (ตัว)</label>
+                    <input
+                      type="number" min="0"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.stillborn || ''}
+                      onChange={(e) => setFormData({...formData, stillborn: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">มัมมี่ (ตัว)</label>
+                    <input
+                      type="number" min="0"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.mummified || ''}
+                      onChange={(e) => setFormData({...formData, mummified: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">นน.เฉลี่ย (กก.)</label>
+                    <input
+                      type="number" step="0.01" min="0"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.avgBirthWeight || ''}
+                      onChange={(e) => setFormData({...formData, avgBirthWeight: e.target.value})}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showEventModal === 'WEAN' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">จำนวนหย่านม (ตัว)</label>
+                    <input
+                      type="number" required min="0"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.weanedCount || ''}
+                      onChange={(e) => setFormData({...formData, weanedCount: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">นน.รวม (กก.)</label>
+                    <input
+                      type="number" step="0.01" min="0"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.totalWeanWeight || ''}
+                      onChange={(e) => setFormData({...formData, totalWeanWeight: e.target.value})}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showEventModal === 'CULL' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">สาเหตุที่คัดออก</label>
+                    <input
+                      type="text" required
+                      placeholder="เช่น แก่, ไม่ติด, ป่วย"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.cullReason || ''}
+                      onChange={(e) => setFormData({...formData, cullReason: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ราคาขาย (บาท) - ไม่บังคับ</label>
+                    <input
+                      type="number" min="0"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={formData.cullPrice || ''}
+                      onChange={(e) => setFormData({...formData, cullPrice: e.target.value})}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุเพิ่มเติม</label>
+                <textarea
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none resize-none"
+                  rows={2}
+                  value={formData.notes || ''}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                ></textarea>
+              </div>
 
               <button
                 type="submit"

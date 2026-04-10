@@ -14,6 +14,7 @@ export const CYCLE_RULES = {
 };
 
 export const EVENT_LABELS: Record<EventType, string> = {
+  ENTRY: 'เข้าเล้า',
   BREED: 'ผสมพันธุ์',
   CHECK_ESTRUS: 'ตรวจสัด',
   ULTRASOUND: 'อัลตราซาวด์',
@@ -22,6 +23,7 @@ export const EVENT_LABELS: Record<EventType, string> = {
   FARROW: 'คลอด',
   WEAN: 'หย่านม',
   RETURN_ESTRUS: 'กลับสัด',
+  CULL: 'คัดออก',
 };
 
 export const STATUS_LABELS: Record<Sow['status'], string> = {
@@ -31,6 +33,7 @@ export const STATUS_LABELS: Record<Sow['status'], string> = {
   PREPARING: 'เตรียมคลอด',
   NURSING: 'เลี้ยงลูก',
   CULL_SUGGESTED: 'ควรคัดออก',
+  CULLED: 'คัดออกแล้ว',
 };
 
 export function getUpcomingTasksForSow(sow: Sow): Task[] {
