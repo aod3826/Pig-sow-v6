@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Sow": {
+      "title": "Sow",
+      "description": "A sow in the farm",
+      "type": "object",
+      "properties": {
+        "breed": { "type": "string" },
+        "birthDate": { "type": "string", "format": "date-time" },
+        "entryDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["IDLE", "BRED", "PREGNANT", "PREPARING", "NURSING", "CULL_SUGGESTED", "CULLED"] },
+        "parity": { "type": "number" },
+        "currentCycleStartDate": { "type": "string", "format": "date-time" },
+        "farrowDate": { "type": "string", "format": "date-time" },
+        "weanDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["status", "parity", "entryDate"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "An event in the sow's lifecycle",
+      "type": "object",
+      "properties": {
+        "sowId": { "type": "string" },
+        "type": { "type": "string", "enum": ["ENTRY", "BREED", "CHECK_ESTRUS", "ULTRASOUND", "FEED_BOOST", "MOVE_TO_PEN", "FARROW", "WEAN", "RETURN_ESTRUS", "CULL"] },
+        "date": { "type": "string", "format": "date-time" },
+        "parity": { "type": "number" },
+        "notes": { "type": "string" },
+        "boarId": { "type": "string" },
+        "inseminator": { "type": "string" },
+        "pregResult": { "type": "string", "enum": ["POSITIVE", "NEGATIVE", "ABORTION"] },
+        "pigletCount": { "type": "number" },
+        "liveBorn": { "type": "number" },
+        "stillborn": { "type": "number" },
+        "mummified": { "type": "number" },
+        "avgBirthWeight": { "type": "number" },
+        "weanedCount": { "type": "number" },
+        "totalWeanWeight": { "type": "number" },
+        "cullReason": { "type": "string" },
+        "cullPrice": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sowId", "type", "date", "parity"]
+    }
+  },
+  "firestore": {
+    "/sows/{sowId}": {
+      "schema": { "$ref": "#/entities/Sow" },
+      "description": "Stores all sows"
+    },
+    "/sows/{sowId}/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Stores activities for a specific sow"
+    }
+  }
+}

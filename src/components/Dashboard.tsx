@@ -1,7 +1,7 @@
 import { Sow } from '../types';
 import { getAllTasks, EVENT_LABELS, STATUS_LABELS } from '../lib/cycleEngine';
 import { cn, formatDate } from '../lib/utils';
-import { AlertCircle, Calendar, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, TrendingUp } from 'lucide-react';
 
 interface DashboardProps {
   sows: Sow[];
@@ -18,6 +18,28 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
     return acc;
   }, {} as Record<string, number>);
 
+  // Calculate Analytics
+  let totalFarrowEvents = 0;
+  let totalLiveBorn = 0;
+  let totalWeanEvents = 0;
+  let totalWeaned = 0;
+
+  sows.forEach(sow => {
+    sow.history.forEach(event => {
+      if (event.type === 'FARROW' && event.liveBorn !== undefined) {
+        totalFarrowEvents++;
+        totalLiveBorn += event.liveBorn;
+      }
+      if (event.type === 'WEAN' && event.weanedCount !== undefined) {
+        totalWeanEvents++;
+        totalWeaned += event.weanedCount;
+      }
+    });
+  });
+
+  const avgLiveBorn = totalFarrowEvents > 0 ? (totalLiveBorn / totalFarrowEvents).toFixed(1) : '-';
+  const avgWeaned = totalWeanEvents > 0 ? (totalWeaned / totalWeanEvents).toFixed(1) : '-';
+
   return (
     <div className="p-4 space-y-6">
       {/* Summary Cards */}
@@ -33,6 +55,30 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
           <div className="bg-pink-50 p-3 rounded-xl shadow-sm border border-pink-100 flex justify-between items-center col-span-2">
             <span className="text-sm text-pink-800 font-bold">รวมทั้งหมด</span>
             <span className="text-xl font-black text-pink-600">{sows.length}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Analytics */}
+      <section>
+        <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
+          <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />
+          สถิติประสิทธิภาพฟาร์ม
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-blue-100 flex flex-col items-center justify-center text-center">
+            <span className="text-sm text-gray-500 mb-1">ลูกเกิดรอดเฉลี่ย</span>
+            <div className="flex items-baseline">
+              <span className="text-2xl font-black text-blue-600">{avgLiveBorn}</span>
+              <span className="text-xs text-gray-400 ml-1">ตัว/ครอก</span>
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-green-100 flex flex-col items-center justify-center text-center">
+            <span className="text-sm text-gray-500 mb-1">ลูกหย่านมเฉลี่ย</span>
+            <div className="flex items-baseline">
+              <span className="text-2xl font-black text-green-600">{avgWeaned}</span>
+              <span className="text-xs text-gray-400 ml-1">ตัว/ครอก</span>
+            </div>
           </div>
         </div>
       </section>

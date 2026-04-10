@@ -3,19 +3,78 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSows } from './hooks/useSows';
 import Dashboard from './components/Dashboard';
 import SowList from './components/SowList';
 import AddSow from './components/AddSow';
 import SowDetails from './components/SowDetails';
-import { LayoutDashboard, List, PlusCircle } from 'lucide-react';
+import { LayoutDashboard, List, PlusCircle, LogOut } from 'lucide-react';
 import { cn } from './lib/utils';
+import { auth } from './firebase';
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
 
 export default function App() {
-  const { sows, addSow, recordEvent, deleteSow, loading } = useSows();
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const { sows, addSow, recordEvent, deleteSow, loading } = useSows(isAuthReady && !!user);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'list' | 'add'>('dashboard');
   const [selectedSowId, setSelectedSowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        setUser(null);
+      }
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = () => {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider).catch(error => {
+      console.error("Login failed:", error);
+      alert("การเข้าสู่ระบบล้มเหลว กรุณาลองใหม่อีกครั้ง");
+    });
+  };
+
+  const handleLogout = () => {
+    signOut(auth).catch(error => {
+      console.error("Logout failed:", error);
+    });
+  };
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
+        <div className="w-full max-w-[430px] bg-gray-50 min-h-screen shadow-xl flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
+          <p className="text-gray-500 font-medium">กำลังตรวจสอบสิทธิ์...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
+        <div className="w-full max-w-[430px] bg-white min-h-screen shadow-xl flex flex-col items-center justify-center p-6">
+          <div className="text-6xl mb-6">🐷</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Sow Management</h1>
+          <p className="text-gray-500 mb-8 text-center">ระบบจัดการวงจรชีวิตแม่หมูในฟาร์ม</p>
+          <button 
+            onClick={handleLogin}
+            className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-pink-700 transition-colors shadow-md"
+          >
+            เข้าสู่ระบบด้วย Google
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -44,7 +103,7 @@ export default function App() {
       case 'list':
         return <SowList sows={sows} onSelectSow={setSelectedSowId} />;
       case 'add':
-        return <AddSow onAdd={(id, date) => { addSow(id, date); setActiveTab('list'); }} />;
+        return <AddSow onAdd={(id, breed, birthDate, entryDate) => { addSow(id, breed, birthDate, entryDate); setActiveTab('list'); }} />;
       default:
         return null;
     }
@@ -54,8 +113,11 @@ export default function App() {
     <div className="min-h-screen bg-gray-100 flex justify-center">
       <div className="w-full max-w-[430px] bg-gray-50 min-h-screen shadow-xl relative flex flex-col">
         {/* Header */}
-        <header className="bg-pink-600 text-white p-4 shadow-md z-10">
-          <h1 className="text-xl font-bold text-center">🐷 Sow Management</h1>
+        <header className="bg-pink-600 text-white p-4 shadow-md z-10 flex justify-between items-center">
+          <h1 className="text-xl font-bold">🐷 Sow Management</h1>
+          <button onClick={handleLogout} className="p-2 hover:bg-pink-700 rounded-full transition-colors" title="ออกจากระบบ">
+            <LogOut size={20} />
+          </button>
         </header>
 
         {/* Main Content Area */}

@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Allow authenticated users to read and write sows
+    match /sows/{sowId} {
+      allow read, write: if isAuthenticated();
+      
+      // Allow authenticated users to read and write activities for a sow
+      match /activities/{activityId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+    
+    // Allow collection group queries for activities
+    match /{path=**}/activities/{activityId} {
+      allow read: if isAuthenticated();
+    }
+  }
+}

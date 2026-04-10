@@ -1,248 +1,214 @@
 import { useState, useEffect } from 'react';
 import { Sow, SowEvent, EventType } from '../types';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { db } from '../firebase';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  collectionGroup,
+  query,
+  getDocs
+} from 'firebase/firestore';
 
 const STORAGE_KEY = 'sow_management_data';
 
-export function useSows() {
+export function useSows(isAuthReady: boolean) {
   const [sows, setSows] = useState<Sow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isSupabaseConfigured && supabase) {
-      fetchFromSupabase();
-    } else {
-      // Fallback to local storage if Supabase is not configured
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          setSows(JSON.parse(saved));
-        } catch (e) {
-          console.error('Failed to parse sows from local storage', e);
-        }
-      }
+    if (!isAuthReady) return;
+
+    // Listen to sows collection
+    const unsubscribeSows = onSnapshot(collection(db, 'sows'), async (snapshot) => {
+      const sowsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      
+      // Fetch all activities across all sows
+      // Using getDocs on collectionGroup for simplicity, or we can use onSnapshot
+      const activitiesQuery = query(collectionGroup(db, 'activities'));
+      
+      const unsubscribeActivities = onSnapshot(activitiesQuery, (actSnapshot) => {
+        const eventsData = actSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+        
+        const formattedSows: Sow[] = sowsData.map(s => ({
+          id: s.id,
+          breed: s.breed,
+          birthDate: s.birthDate,
+          entryDate: s.entryDate,
+          status: s.status,
+          parity: s.parity || 0,
+          currentCycleStartDate: s.currentCycleStartDate,
+          farrowDate: s.farrowDate,
+          weanDate: s.weanDate,
+          history: eventsData
+            .filter(e => e.sowId === s.id)
+            .map(e => ({
+              id: e.id,
+              type: e.type,
+              date: e.date,
+              notes: e.notes,
+              parity: e.parity,
+              boarId: e.boarId,
+              inseminator: e.inseminator,
+              pregResult: e.pregResult,
+              pigletCount: e.pigletCount,
+              liveBorn: e.liveBorn,
+              stillborn: e.stillborn,
+              mummified: e.mummified,
+              avgBirthWeight: e.avgBirthWeight,
+              weanedCount: e.weanedCount,
+              totalWeanWeight: e.totalWeanWeight,
+              cullReason: e.cullReason,
+              cullPrice: e.cullPrice
+            }))
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        }));
+
+        setSows(formattedSows);
+        setLoading(false);
+      }, (error) => {
+        console.error("Error fetching activities:", error);
+        setLoading(false);
+      });
+
+      return () => unsubscribeActivities();
+    }, (error) => {
+      console.error("Error fetching sows:", error);
       setLoading(false);
-    }
-  }, []);
+    });
 
-  // Save to local storage only if Supabase is not configured
-  useEffect(() => {
-    if (!isSupabaseConfigured && !loading) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sows));
-    }
-  }, [sows, loading]);
-
-  const fetchFromSupabase = async () => {
-    try {
-      const { data: sowsData, error: sowsError } = await supabase!.from('sows').select('*');
-      if (sowsError) throw sowsError;
-
-      const { data: eventsData, error: eventsError } = await supabase!.from('sow_events').select('*');
-      if (eventsError) throw eventsError;
-
-      const formattedSows: Sow[] = sowsData.map(s => ({
-        id: s.id,
-        breed: s.breed,
-        birthDate: s.birth_date,
-        entryDate: s.entry_date,
-        status: s.status,
-        parity: s.parity,
-        currentCycleStartDate: s.current_cycle_start_date,
-        farrowDate: s.farrow_date,
-        weanDate: s.wean_date,
-        history: eventsData
-          .filter(e => e.sow_id === s.id)
-          .map(e => ({
-            id: e.id,
-            type: e.type,
-            date: e.date,
-            notes: e.notes,
-            parity: e.parity,
-            boarId: e.boar_id,
-            inseminator: e.inseminator,
-            pregResult: e.preg_result,
-            pigletCount: e.piglet_count,
-            liveBorn: e.live_born,
-            stillborn: e.stillborn,
-            mummified: e.mummified,
-            avgBirthWeight: e.avg_birth_weight,
-            weanedCount: e.weaned_count,
-            totalWeanWeight: e.total_wean_weight,
-            cullReason: e.cull_reason,
-            cullPrice: e.cull_price
-          }))
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      }));
-
-      setSows(formattedSows);
-    } catch (error) {
-      console.error('Supabase fetch error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => unsubscribeSows();
+  }, [isAuthReady]);
 
   const addSow = async (id: string, breed: string, birthDate: string, entryDate: string) => {
     const newEventId = crypto.randomUUID();
-    const newSow: Sow = {
-      id,
-      breed,
-      birthDate,
-      entryDate,
-      status: 'IDLE',
-      parity: 0,
-      history: [
-        {
-          id: newEventId,
-          type: 'ENTRY',
-          date: entryDate,
-          parity: 0,
-        }
-      ]
-    };
+    
+    try {
+      // Create sow document
+      await setDoc(doc(db, 'sows', id), {
+        breed,
+        birthDate: birthDate || null,
+        entryDate,
+        status: 'IDLE',
+        parity: 0,
+        createdAt: new Date().toISOString()
+      });
 
-    // Optimistic UI update
-    setSows(prev => [...prev, newSow]);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('sows').insert({
-          id,
-          breed,
-          birth_date: birthDate || null,
-          entry_date: entryDate,
-          status: 'IDLE',
-          parity: 0
-        });
-        await supabase.from('sow_events').insert({
-          id: newEventId,
-          sow_id: id,
-          type: 'ENTRY',
-          date: entryDate,
-          parity: 0
-        });
-      } catch (error) {
-        console.error('Error adding sow to Supabase:', error);
-      }
+      // Create initial activity in sub-collection
+      await setDoc(doc(db, `sows/${id}/activities`, newEventId), {
+        sowId: id,
+        type: 'ENTRY',
+        date: entryDate,
+        parity: 0,
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error adding sow to Firestore:', error);
     }
   };
 
   const recordEvent = async (sowId: string, type: EventType, date: string, payload: Partial<SowEvent> = {}) => {
-    let updatedSowData: Partial<Sow> | null = null;
-    let newEventData: SowEvent | null = null;
+    const sow = sows.find(s => s.id === sowId);
+    if (!sow) return;
 
-    setSows(prev => prev.map(sow => {
-      if (sow.id !== sowId) return sow;
+    let newParity = sow.parity || 0;
+    let newStatus = sow.status;
+    let currentCycleStartDate = sow.currentCycleStartDate;
+    let farrowDate = sow.farrowDate;
+    let weanDate = sow.weanDate;
 
-      let newParity = sow.parity || 0;
-      if (type === 'BREED' && (sow.status === 'IDLE' || sow.status === 'CULL_SUGGESTED')) {
-        newParity += 1;
-      }
+    // State Machine Logic & Parity Update
+    switch (type) {
+      case 'BREED':
+        newStatus = 'BRED';
+        currentCycleStartDate = date;
+        break;
+      case 'CHECK_ESTRUS':
+        if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {
+          newStatus = 'IDLE';
+        }
+        // If POSITIVE, status remains BRED (wait for ULTRASOUND to confirm PREGNANT)
+        break;
+      case 'ULTRASOUND':
+        if (payload.pregResult === 'POSITIVE') {
+          newStatus = 'PREGNANT';
+        } else if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {
+          newStatus = 'IDLE';
+        }
+        break;
+      case 'MOVE_TO_PEN':
+        if (sow.status === 'PREGNANT') newStatus = 'PREPARING';
+        break;
+      case 'FARROW':
+        if (sow.status === 'PREPARING') {
+          newStatus = 'NURSING';
+          farrowDate = date;
+        }
+        break;
+      case 'WEAN':
+        if (sow.status === 'NURSING') {
+          // Increment parity on WEAN as requested
+          newParity += 1;
+          if (newParity >= 7) {
+            newStatus = 'CULL_SUGGESTED';
+          } else {
+            newStatus = 'IDLE';
+          }
+          weanDate = date;
+        }
+        break;
+      case 'RETURN_ESTRUS':
+        newStatus = 'IDLE';
+        weanDate = date; 
+        break;
+      case 'CULL':
+        newStatus = 'CULLED';
+        break;
+    }
 
-      const newEvent: SowEvent = {
-        id: crypto.randomUUID(),
+    const newEventId = crypto.randomUUID();
+
+    try {
+      // Update sow document
+      await updateDoc(doc(db, 'sows', sowId), {
+        status: newStatus,
+        parity: newParity,
+        currentCycleStartDate: currentCycleStartDate || null,
+        farrowDate: farrowDate || null,
+        weanDate: weanDate || null,
+        updatedAt: new Date().toISOString()
+      });
+
+      // Add activity to sub-collection
+      await setDoc(doc(db, `sows/${sowId}/activities`, newEventId), {
+        sowId,
         type,
         date,
         parity: newParity,
-        ...payload
-      };
-
-      const updatedSow = { ...sow, parity: newParity, history: [...sow.history, newEvent] };
-
-      // State Machine Logic
-      switch (type) {
-        case 'BREED':
-          updatedSow.status = 'BRED';
-          updatedSow.currentCycleStartDate = date;
-          break;
-        case 'CHECK_ESTRUS':
-        case 'ULTRASOUND':
-          if (payload.pregResult === 'POSITIVE') {
-            updatedSow.status = 'PREGNANT';
-          } else if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {
-            updatedSow.status = 'IDLE';
-            updatedSow.weanDate = date; // Reset cycle timing
-          }
-          break;
-        case 'MOVE_TO_PEN':
-          if (sow.status === 'PREGNANT') updatedSow.status = 'PREPARING';
-          break;
-        case 'FARROW':
-          if (sow.status === 'PREPARING') {
-            updatedSow.status = 'NURSING';
-            updatedSow.farrowDate = date;
-          }
-          break;
-        case 'WEAN':
-          if (sow.status === 'NURSING') {
-            if (newParity >= 7) {
-              updatedSow.status = 'CULL_SUGGESTED';
-            } else {
-              updatedSow.status = 'IDLE';
-            }
-            updatedSow.weanDate = date;
-          }
-          break;
-        case 'RETURN_ESTRUS':
-          updatedSow.status = 'IDLE';
-          updatedSow.weanDate = date; 
-          break;
-        case 'CULL':
-          updatedSow.status = 'CULLED';
-          break;
-      }
-
-      updatedSowData = updatedSow;
-      newEventData = newEvent;
-
-      return updatedSow;
-    }));
-
-    if (isSupabaseConfigured && supabase && updatedSowData && newEventData) {
-      try {
-        await supabase.from('sows').update({
-          status: updatedSowData.status,
-          parity: updatedSowData.parity,
-          current_cycle_start_date: updatedSowData.currentCycleStartDate,
-          farrow_date: updatedSowData.farrowDate,
-          wean_date: updatedSowData.weanDate
-        }).eq('id', sowId);
-
-        await supabase.from('sow_events').insert({
-          id: newEventData.id,
-          sow_id: sowId,
-          type: newEventData.type,
-          date: newEventData.date,
-          parity: newEventData.parity,
-          notes: newEventData.notes,
-          boar_id: newEventData.boarId,
-          inseminator: newEventData.inseminator,
-          preg_result: newEventData.pregResult,
-          piglet_count: newEventData.pigletCount,
-          live_born: newEventData.liveBorn,
-          stillborn: newEventData.stillborn,
-          mummified: newEventData.mummified,
-          avg_birth_weight: newEventData.avgBirthWeight,
-          weaned_count: newEventData.weanedCount,
-          total_wean_weight: newEventData.totalWeanWeight,
-          cull_reason: newEventData.cullReason,
-          cull_price: newEventData.cullPrice
-        });
-      } catch (error) {
-        console.error('Error recording event to Supabase:', error);
-      }
+        ...payload,
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error recording event to Firestore:', error);
     }
   };
 
   const deleteSow = async (sowId: string) => {
-    setSows(prev => prev.filter(s => s.id !== sowId));
-    
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('sows').delete().eq('id', sowId);
-      } catch (error) {
-        console.error('Error deleting sow from Supabase:', error);
+    try {
+      // Note: Deleting a document in Firestore does not automatically delete its sub-collections.
+      // For a robust solution, you'd delete all activities first, or use a Cloud Function.
+      // Here we delete the activities we know about from the client side.
+      const sowActivities = sows.find(s => s.id === sowId)?.history || [];
+      for (const activity of sowActivities) {
+        await deleteDoc(doc(db, `sows/${sowId}/activities`, activity.id));
       }
+      
+      await deleteDoc(doc(db, 'sows', sowId));
+    } catch (error) {
+      console.error('Error deleting sow from Firestore:', error);
     }
   };
 

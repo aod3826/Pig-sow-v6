@@ -76,8 +76,21 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
     addTask('WEAN', sow.farrowDate, CYCLE_RULES.WEAN);
   }
 
-  if (sow.status === 'IDLE' && sow.weanDate) {
-    addTask('BREED', sow.weanDate, CYCLE_RULES.REBREED);
+  if (sow.status === 'IDLE') {
+    const lastEvent = sow.history[sow.history.length - 1];
+    if (lastEvent) {
+      if (lastEvent.type === 'WEAN') {
+        addTask('BREED', lastEvent.date, CYCLE_RULES.REBREED);
+      } else if (['CHECK_ESTRUS', 'ULTRASOUND', 'RETURN_ESTRUS'].includes(lastEvent.type)) {
+        addTask('BREED', lastEvent.date, 0); // Breed immediately
+      } else if (lastEvent.type === 'ENTRY') {
+        addTask('BREED', lastEvent.date, 0); // Ready to breed
+      } else {
+        if (sow.weanDate) addTask('BREED', sow.weanDate, CYCLE_RULES.REBREED);
+      }
+    } else {
+      if (sow.entryDate) addTask('BREED', sow.entryDate, 0);
+    }
   }
 
   // Sort tasks by expected date ascending
