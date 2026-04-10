@@ -49,8 +49,8 @@ export default function App() {
 
   if (!isAuthReady) {
     return (
-      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
-        <div className="w-full max-w-[430px] bg-gray-50 min-h-screen shadow-xl flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-slate-200 flex justify-center items-center">
+        <div className="w-full max-w-[430px] bg-slate-100 min-h-screen shadow-xl flex flex-col items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
           <p className="text-gray-500 font-medium">กำลังตรวจสอบสิทธิ์...</p>
         </div>
@@ -60,7 +60,7 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
+      <div className="min-h-screen bg-slate-200 flex justify-center items-center">
         <div className="w-full max-w-[430px] bg-white min-h-screen shadow-xl flex flex-col items-center justify-center p-6">
           <div className="text-6xl mb-6">🐷</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Sow Management</h1>
@@ -78,8 +78,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
-        <div className="w-full max-w-[430px] bg-gray-50 min-h-screen shadow-xl flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-slate-200 flex justify-center items-center">
+        <div className="w-full max-w-[430px] bg-slate-100 min-h-screen shadow-xl flex flex-col items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
           <p className="text-gray-500 font-medium">กำลังโหลดข้อมูล...</p>
         </div>
@@ -110,44 +110,44 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center">
-      <div className="w-full max-w-[430px] bg-gray-50 min-h-screen shadow-xl relative flex flex-col">
+    <div className="min-h-screen bg-slate-200 flex justify-center">
+      <div className="w-full max-w-[430px] bg-slate-100 min-h-screen shadow-xl relative flex flex-col">
         {/* Header */}
         <header className="bg-pink-600 text-white p-4 shadow-md z-10 flex justify-between items-center">
-          <h1 className="text-xl font-bold">🐷 Sow Management</h1>
+          <h1 className="text-2xl font-bold">🐷 Sow Management</h1>
           <button onClick={handleLogout} className="p-2 hover:bg-pink-700 rounded-full transition-colors" title="ออกจากระบบ">
-            <LogOut size={20} />
+            <LogOut size={24} />
           </button>
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto pb-20">
+        <main className="flex-1 overflow-y-auto pb-24">
           {renderContent()}
         </main>
 
         {/* Bottom Navigation */}
         {!selectedSowId && (
-          <nav className="absolute bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-2 pb-safe shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-10">
+          <nav className="absolute bottom-0 w-full bg-white border-t border-gray-200 flex justify-around p-3 pb-safe shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-10">
             <button 
               onClick={() => setActiveTab('dashboard')}
               className={cn("flex flex-col items-center p-2 rounded-lg transition-colors", activeTab === 'dashboard' ? "text-pink-600" : "text-gray-500 hover:bg-gray-100")}
             >
-              <LayoutDashboard size={24} />
-              <span className="text-xs mt-1 font-medium">แดชบอร์ด</span>
+              <LayoutDashboard size={28} />
+              <span className="text-sm mt-1 font-medium">แดชบอร์ด</span>
             </button>
             <button 
               onClick={() => setActiveTab('list')}
               className={cn("flex flex-col items-center p-2 rounded-lg transition-colors", activeTab === 'list' ? "text-pink-600" : "text-gray-500 hover:bg-gray-100")}
             >
-              <List size={24} />
-              <span className="text-xs mt-1 font-medium">รายชื่อ</span>
+              <List size={28} />
+              <span className="text-sm mt-1 font-medium">รายชื่อ</span>
             </button>
             <button 
               onClick={() => setActiveTab('add')}
               className={cn("flex flex-col items-center p-2 rounded-lg transition-colors", activeTab === 'add' ? "text-pink-600" : "text-gray-500 hover:bg-gray-100")}
             >
-              <PlusCircle size={24} />
-              <span className="text-xs mt-1 font-medium">เพิ่มแม่หมู</span>
+              <PlusCircle size={28} />
+              <span className="text-sm mt-1 font-medium">เพิ่มแม่หมู</span>
             </button>
           </nav>
         )}
