@@ -127,7 +127,7 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
                     {STATUS_LABELS[sow.status]}
                   </span>
                   <span className="inline-block px-2 py-1 text-xs font-medium rounded-md border bg-gray-50 text-gray-600 border-gray-200">
-                    รอบที่ {sow.parity || 1}
+                    รอบที่ {Math.min((sow.parity ?? 0) + 1, 7)}/7
                   </span>
                 </div>
                 <div className="flex items-center text-xs text-gray-500">

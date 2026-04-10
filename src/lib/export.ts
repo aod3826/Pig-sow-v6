@@ -28,7 +28,7 @@ export function exportSowsToCSV(sows: Sow[]) {
       sow.id,
       sow.breed || '-',
       sow.status,
-      sow.parity || 1,
+      `${Math.min((sow.parity ?? 0) + 1, 7)}/7`,
       entryDate,
       latestFarrow?.liveBorn ?? '-',
       latestWean?.weanedCount ?? '-'

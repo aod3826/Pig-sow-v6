@@ -118,8 +118,13 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
         {activeTab === 'details' && (
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-center animate-in fade-in duration-200">
             <p className="text-sm text-gray-500 mb-1">สถานะปัจจุบัน</p>
-            <div className={cn("inline-block px-4 py-1.5 rounded-full font-bold text-lg mb-4", getStatusColor(sow.status))}>
-              {STATUS_LABELS[sow.status]}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className={cn("inline-block px-4 py-1.5 rounded-full font-bold text-lg", getStatusColor(sow.status))}>
+                {STATUS_LABELS[sow.status]}
+              </div>
+              <div className="inline-block px-4 py-1.5 rounded-full font-bold text-lg bg-gray-100 text-gray-700 border border-gray-200">
+                รอบที่ {Math.min((sow.parity ?? 0) + 1, 7)}/7
+              </div>
             </div>
 
             {/* Progress Bar */}
@@ -227,14 +232,15 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
                 <p>ยังไม่มีประวัติกิจกรรม</p>
               </div>
             ) : (
-              Array.from(new Set(sow.history.map(e => e.parity || 1))).sort((a, b) => b - a).map(parityLevel => {
-                const eventsInParity = sow.history.filter(e => (e.parity || 1) === parityLevel).reverse();
+              Array.from(new Set(sow.history.map(e => e.parity || 0))).sort((a, b) => b - a).map(parityLevel => {
+                const eventsInParity = sow.history.filter(e => (e.parity || 0) === parityLevel).reverse();
                 const farrowEvent = eventsInParity.find(e => e.type === 'FARROW');
+                const cycleNum = Math.min(parityLevel + 1, 7);
                 
                 return (
                   <div key={parityLevel} className="mb-6">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-bold text-pink-600 bg-pink-50 px-3 py-1 rounded-lg inline-block">รอบที่ {parityLevel}</h4>
+                      <h4 className="font-bold text-pink-600 bg-pink-50 px-3 py-1 rounded-lg inline-block">รอบที่ {cycleNum}/7</h4>
                       {farrowEvent?.pigletCount !== undefined && (
                         <span className="text-sm font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-md">ให้ลูก: {farrowEvent.pigletCount} ตัว</span>
                       )}

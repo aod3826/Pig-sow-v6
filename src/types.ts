@@ -42,6 +42,8 @@ export interface SowEvent {
   // CULL
   cullReason?: string;
   cullPrice?: number;
+
+  createdAt?: string;
 }
 
 export interface Sow {

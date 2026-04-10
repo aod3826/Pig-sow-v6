@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Sow, SowEvent, EventType } from '../types';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { 
   collection, 
   doc, 
@@ -12,6 +12,57 @@ import {
   query,
   getDocs
 } from 'firebase/firestore';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email || undefined,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId || undefined,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 const STORAGE_KEY = 'sow_management_data';
 
@@ -27,7 +78,6 @@ export function useSows(isAuthReady: boolean) {
       const sowsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
       
       // Fetch all activities across all sows
-      // Using getDocs on collectionGroup for simplicity, or we can use onSnapshot
       const activitiesQuery = query(collectionGroup(db, 'activities'));
       
       const unsubscribeActivities = onSnapshot(activitiesQuery, (actSnapshot) => {
@@ -62,21 +112,26 @@ export function useSows(isAuthReady: boolean) {
               weanedCount: e.weanedCount,
               totalWeanWeight: e.totalWeanWeight,
               cullReason: e.cullReason,
-              cullPrice: e.cullPrice
+              cullPrice: e.cullPrice,
+              createdAt: e.createdAt
             }))
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .sort((a, b) => {
+              const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+              if (dateDiff !== 0) return dateDiff;
+              return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+            })
         }));
 
         setSows(formattedSows);
         setLoading(false);
       }, (error) => {
-        console.error("Error fetching activities:", error);
+        handleFirestoreError(error, OperationType.LIST, 'activities (collectionGroup)');
         setLoading(false);
       });
 
       return () => unsubscribeActivities();
     }, (error) => {
-      console.error("Error fetching sows:", error);
+      handleFirestoreError(error, OperationType.LIST, 'sows');
       setLoading(false);
     });
 
@@ -106,7 +161,7 @@ export function useSows(isAuthReady: boolean) {
         createdAt: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Error adding sow to Firestore:', error);
+      handleFirestoreError(error, OperationType.CREATE, `sows/${id}`);
     }
   };
 
@@ -115,6 +170,7 @@ export function useSows(isAuthReady: boolean) {
     if (!sow) return;
 
     let newParity = sow.parity || 0;
+    const eventParity = newParity; // Record the event under the current cycle before incrementing
     let newStatus = sow.status;
     let currentCycleStartDate = sow.currentCycleStartDate;
     let farrowDate = sow.farrowDate;
@@ -187,20 +243,17 @@ export function useSows(isAuthReady: boolean) {
         sowId,
         type,
         date,
-        parity: newParity,
+        parity: eventParity, // Use the pre-incremented parity so WEAN stays in the same cycle group
         ...payload,
         createdAt: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Error recording event to Firestore:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `sows/${sowId}`);
     }
   };
 
   const deleteSow = async (sowId: string) => {
     try {
-      // Note: Deleting a document in Firestore does not automatically delete its sub-collections.
-      // For a robust solution, you'd delete all activities first, or use a Cloud Function.
-      // Here we delete the activities we know about from the client side.
       const sowActivities = sows.find(s => s.id === sowId)?.history || [];
       for (const activity of sowActivities) {
         await deleteDoc(doc(db, `sows/${sowId}/activities`, activity.id));
@@ -208,7 +261,7 @@ export function useSows(isAuthReady: boolean) {
       
       await deleteDoc(doc(db, 'sows', sowId));
     } catch (error) {
-      console.error('Error deleting sow from Firestore:', error);
+      handleFirestoreError(error, OperationType.DELETE, `sows/${sowId}`);
     }
   };
 

@@ -51,18 +51,22 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
     });
   };
 
+  // Find the events after the last BREED
+  const lastBreedIndex = sow.history.map(e => e.type).lastIndexOf('BREED');
+  const eventsAfterBreed = lastBreedIndex !== -1 ? sow.history.slice(lastBreedIndex + 1) : [];
+
   if (sow.status === 'BRED' && sow.currentCycleStartDate) {
     // Hasn't done ultrasound yet
-    const hasUltrasound = sow.history.some(e => e.type === 'ULTRASOUND' && e.date >= sow.currentCycleStartDate!);
-    const hasCheckEstrus = sow.history.some(e => e.type === 'CHECK_ESTRUS' && e.date >= sow.currentCycleStartDate!);
+    const hasUltrasound = eventsAfterBreed.some(e => e.type === 'ULTRASOUND');
+    const hasCheckEstrus = eventsAfterBreed.some(e => e.type === 'CHECK_ESTRUS');
     
     if (!hasCheckEstrus) addTask('CHECK_ESTRUS', sow.currentCycleStartDate, CYCLE_RULES.CHECK_ESTRUS);
     if (!hasUltrasound) addTask('ULTRASOUND', sow.currentCycleStartDate, CYCLE_RULES.ULTRASOUND);
   }
 
   if (sow.status === 'PREGNANT' && sow.currentCycleStartDate) {
-    const hasFeedBoost = sow.history.some(e => e.type === 'FEED_BOOST' && e.date >= sow.currentCycleStartDate!);
-    const hasMoveToPen = sow.history.some(e => e.type === 'MOVE_TO_PEN' && e.date >= sow.currentCycleStartDate!);
+    const hasFeedBoost = eventsAfterBreed.some(e => e.type === 'FEED_BOOST');
+    const hasMoveToPen = eventsAfterBreed.some(e => e.type === 'MOVE_TO_PEN');
 
     if (!hasFeedBoost) addTask('FEED_BOOST', sow.currentCycleStartDate, CYCLE_RULES.FEED_BOOST);
     if (!hasMoveToPen) addTask('MOVE_TO_PEN', sow.currentCycleStartDate, CYCLE_RULES.MOVE_TO_PEN);
