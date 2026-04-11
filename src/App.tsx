@@ -36,8 +36,7 @@ export default function App() {
 
   const handleLogin = () => {
     const provider = new GoogleAuthProvider();
-    // Use signInWithRedirect instead of signInWithPopup to avoid popup blocking issues on mobile and Vercel
-    signInWithRedirect(auth, provider).catch(error => {
+    signInWithPopup(auth, provider).catch(error => {
       console.error("Login failed:", error);
       alert("การเข้าสู่ระบบล้มเหลว กรุณาลองใหม่อีกครั้ง");
     });
