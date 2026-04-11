@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Sow } from '../types';
 import { getAllTasks, EVENT_LABELS, STATUS_LABELS } from '../lib/cycleEngine';
 import { cn, formatDate } from '../lib/utils';
-import { AlertCircle, Calendar, CheckCircle2, TrendingUp } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, TrendingUp, HelpCircle, X } from 'lucide-react';
 
 interface DashboardProps {
   sows: Sow[];
@@ -9,9 +10,12 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
+  const [showLegend, setShowLegend] = useState(false);
   const allTasks = getAllTasks(sows);
   const overdueTasks = allTasks.filter(t => t.status === 'OVERDUE');
   const todayTasks = allTasks.filter(t => t.status === 'TODAY');
+  
+  const urgentTasks = [...overdueTasks, ...todayTasks];
   
   const statusCounts = sows.reduce((acc, sow) => {
     acc[sow.status] = (acc[sow.status] || 0) + 1;
@@ -42,6 +46,74 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
 
   return (
     <div className="p-4 space-y-6">
+      {/* Header with Help Button */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-800">แดชบอร์ด</h2>
+        <button 
+          onClick={() => setShowLegend(true)}
+          className="p-2 bg-white rounded-full shadow-sm border border-gray-200 text-gray-500 hover:text-pink-600 transition-colors"
+        >
+          <HelpCircle className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Urgent Tasks (Today's To-Do) */}
+      <section>
+        <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
+          <AlertCircle className="w-5 h-5 mr-2 text-red-500" />
+          งานด่วนวันนี้
+        </h2>
+        
+        {urgentTasks.length === 0 ? (
+          <div className="bg-green-50 text-green-700 p-6 rounded-2xl flex flex-col items-center justify-center border border-green-100 shadow-sm">
+            <CheckCircle2 className="w-12 h-12 mb-2 text-green-500" />
+            <span className="font-bold text-lg">เยี่ยมมาก! 🎉</span>
+            <span className="text-sm mt-1">ไม่มีงานค้างหรือถึงกำหนดวันนี้</span>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {urgentTasks.map(task => (
+              <div 
+                key={task.id} 
+                onClick={() => onSelectSow(task.sowId)}
+                className={cn(
+                  "border-l-4 p-4 rounded-r-2xl shadow-sm cursor-pointer transition-colors flex items-center justify-between",
+                  task.status === 'OVERDUE' ? "bg-red-50 border-red-500 hover:bg-red-100" : "bg-yellow-50 border-yellow-500 hover:bg-yellow-100"
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold",
+                    task.status === 'OVERDUE' ? "bg-red-200 text-red-700" : "bg-yellow-200 text-yellow-700"
+                  )}>
+                    {task.type === 'FARROW' ? '🐷' :
+                     task.type === 'WEAN' ? '🍼' :
+                     task.type === 'PREG_CHECK' ? '🔍' : '💉'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-lg text-gray-900">{task.sowId}</h3>
+                      <span className={cn(
+                        "text-xs font-bold px-2 py-0.5 rounded-full",
+                        task.status === 'OVERDUE' ? "bg-red-200 text-red-800" : "bg-yellow-200 text-yellow-800"
+                      )}>
+                        {task.status === 'OVERDUE' ? `เลยกำหนด ${Math.abs(task.daysDiff)} วัน` : 'วันนี้'}
+                      </span>
+                    </div>
+                    <p className="text-base font-medium text-gray-700">{EVENT_LABELS[task.type]}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-gray-900">
+                    {formatDate(task.expectedDate)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Summary Cards */}
       <section>
         <h2 className="text-lg font-bold text-gray-800 mb-3">ภาพรวมสถานะ</h2>
@@ -83,62 +155,63 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
         </div>
       </section>
 
-      {/* Alerts */}
-      <section>
-        <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
-          <AlertCircle className="w-5 h-5 mr-2 text-red-500" />
-          สิ่งที่ต้องทำ (Alerts)
-        </h2>
-        
-        {overdueTasks.length === 0 && todayTasks.length === 0 ? (
-          <div className="bg-green-50 text-green-700 p-4 rounded-xl flex items-center justify-center border border-green-100">
-            <CheckCircle2 className="w-5 h-5 mr-2" />
-            <span className="font-medium">ไม่มีงานค้างหรือถึงกำหนดวันนี้</span>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {overdueTasks.map(task => (
-              <div 
-                key={task.id} 
-                onClick={() => onSelectSow(task.sowId)}
-                className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-xl shadow-sm cursor-pointer hover:bg-red-100 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-xs font-bold bg-red-200 text-red-800 px-2 py-1 rounded-full mb-2 inline-block">เลยกำหนด {Math.abs(task.daysDiff)} วัน</span>
-                    <h3 className="font-bold text-gray-900">{task.sowId}</h3>
-                    <p className="text-sm text-gray-700">{EVENT_LABELS[task.type]}</p>
-                  </div>
-                  <div className="text-right">
-                    <Calendar className="w-4 h-4 text-red-400 inline mr-1" />
-                    <span className="text-xs text-red-600 font-medium">{formatDate(task.expectedDate)}</span>
-                  </div>
-                </div>
+      {/* Legend Modal */}
+      {showLegend && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 animate-in zoom-in-95 duration-200 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 border-b pb-3">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <HelpCircle className="w-6 h-6 text-pink-600" /> คู่มือการใช้งาน
+              </h3>
+              <button onClick={() => setShowLegend(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-500">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+              <div>
+                <h4 className="font-bold text-gray-800 mb-2">ความหมายของสี (กำหนดการ)</h4>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center gap-3"><span className="w-4 h-4 rounded-full bg-red-500 shrink-0"></span> สีแดง = เลยกำหนด (ต้องรีบทำ!)</li>
+                  <li className="flex items-center gap-3"><span className="w-4 h-4 rounded-full bg-yellow-500 shrink-0"></span> สีเหลือง = ถึงกำหนดวันนี้</li>
+                  <li className="flex items-center gap-3"><span className="w-4 h-4 rounded-full bg-green-500 shrink-0"></span> สีเขียว = เร็วๆ นี้ (ยังไม่ถึงกำหนด)</li>
+                </ul>
               </div>
-            ))}
 
-            {todayTasks.map(task => (
-              <div 
-                key={task.id} 
-                onClick={() => onSelectSow(task.sowId)}
-                className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-r-xl shadow-sm cursor-pointer hover:bg-yellow-100 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-xs font-bold bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full mb-2 inline-block">ถึงกำหนดวันนี้</span>
-                    <h3 className="font-bold text-gray-900">{task.sowId}</h3>
-                    <p className="text-sm text-gray-700">{EVENT_LABELS[task.type]}</p>
-                  </div>
-                  <div className="text-right">
-                    <Calendar className="w-4 h-4 text-yellow-500 inline mr-1" />
-                    <span className="text-xs text-yellow-700 font-medium">{formatDate(task.expectedDate)}</span>
-                  </div>
+              <div>
+                <h4 className="font-bold text-gray-800 mb-2">ความหมายของสี (สถานะแม่หมู)</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gray-400"></span> รอผสม</div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500"></span> ผสมแล้ว</div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-500"></span> ตั้งท้อง</div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-orange-500"></span> เตรียมคลอด</div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500"></span> เลี้ยงลูก</div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500"></span> ควรคัดออก</div>
                 </div>
               </div>
-            ))}
+
+              <div className="bg-pink-50 p-4 rounded-xl border border-pink-100">
+                <h4 className="font-bold text-pink-800 mb-2">วงจรการผลิต (114 วัน)</h4>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-pink-700">
+                  <li><strong>ผสมพันธุ์</strong> (เริ่มนับวันที่ 0)</li>
+                  <li><strong>ตรวจกลับสัด</strong> (วันที่ 28 หลังผสม)</li>
+                  <li><strong>ย้ายเข้าคอกคลอด</strong> (วันที่ 108 หลังผสม)</li>
+                  <li><strong>คลอด</strong> (วันที่ 114 หลังผสม)</li>
+                  <li><strong>หย่านม</strong> (วันที่ 21 หลังคลอด)</li>
+                  <li><strong>ผสมรอบใหม่</strong> (วันที่ 5 หลังหย่านม)</li>
+                </ol>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => setShowLegend(false)}
+              className="w-full mt-6 bg-gray-100 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors"
+            >
+              ปิดหน้าต่าง
+            </button>
           </div>
-        )}
-      </section>
+        </div>
+      )}
     </div>
   );
 }

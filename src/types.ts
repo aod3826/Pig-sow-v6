@@ -4,13 +4,13 @@ export type EventType =
   | 'ENTRY'
   | 'BREED' 
   | 'CHECK_ESTRUS' 
-  | 'ULTRASOUND' 
   | 'FEED_BOOST' 
   | 'MOVE_TO_PEN' 
   | 'FARROW' 
   | 'WEAN' 
   | 'RETURN_ESTRUS'
-  | 'CULL';
+  | 'CULL'
+  | 'HEALTH_NOTE';
 
 export type PregResult = 'POSITIVE' | 'NEGATIVE' | 'ABORTION';
 
@@ -20,6 +20,9 @@ export interface SowEvent {
   date: string; // ISO string
   notes?: string;
   parity?: number;
+  
+  // HEALTH_NOTE
+  noteCategory?: 'SICK' | 'VACCINE' | 'GENERAL';
   
   // BREED
   boarId?: string;

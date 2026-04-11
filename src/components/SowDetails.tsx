@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Sow, EventType } from '../types';
 import { getUpcomingTasksForSow, EVENT_LABELS, STATUS_LABELS } from '../lib/cycleEngine';
 import { cn, formatDate } from '../lib/utils';
-import { ArrowLeft, CheckCircle2, Circle, Clock, Trash2, ListTodo, History } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, Clock, Trash2, ListTodo, History, MoreVertical, Stethoscope, RefreshCw, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface SowDetailsProps {
@@ -17,6 +17,7 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
   const [activeTab, setActiveTab] = useState<'tasks' | 'history'>('tasks');
   const [showEventModal, setShowEventModal] = useState<EventType | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [formData, setFormData] = useState<any>({
     date: format(new Date(), 'yyyy-MM-dd')
   });
@@ -55,9 +56,43 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
           <span className="font-medium text-gray-700 text-base">กลับ</span>
         </button>
         <h2 className="text-xl font-bold text-gray-900">{sow.id}</h2>
-        <button onClick={() => setShowDeleteConfirm(true)} className="p-2 -mr-2 rounded-full hover:bg-red-50 text-red-500">
-          <Trash2 className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setShowDeleteConfirm(true)} className="p-2 rounded-full hover:bg-red-50 text-red-500">
+            <Trash2 className="w-6 h-6" />
+          </button>
+          <div className="relative">
+            <button onClick={() => setShowMenu(!showMenu)} className="p-2 -mr-2 rounded-full hover:bg-gray-100 text-gray-700">
+              <MoreVertical className="w-6 h-6" />
+            </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                  <button 
+                    onClick={() => { setShowEventModal('HEALTH_NOTE'); setShowMenu(false); }} 
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700 font-medium"
+                  >
+                    <Stethoscope className="w-5 h-5 text-blue-500" /> บันทึกสุขภาพ/หมายเหตุ
+                  </button>
+                  {['BRED', 'PREGNANT', 'PREPARING'].includes(sow.status) && (
+                    <button 
+                      onClick={() => { setShowEventModal('RETURN_ESTRUS'); setShowMenu(false); }} 
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-orange-600 font-medium"
+                    >
+                      <RefreshCw className="w-5 h-5" /> แจ้งกลับสัด
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => { setShowEventModal('CULL'); setShowMenu(false); }} 
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-red-600 font-medium"
+                  >
+                    <AlertTriangle className="w-5 h-5" /> คัดออก
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -81,7 +116,7 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
         </button>
       </div>
 
-      <div className="p-4 space-y-6 overflow-y-auto pb-24">
+      <div className="p-4 space-y-6 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         {/* Tasks Tab */}
         {activeTab === 'tasks' && (
           <section className="animate-in fade-in duration-200 flex flex-col gap-6">
@@ -123,42 +158,6 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
               <div className="text-center py-12 text-gray-500 bg-white rounded-2xl border border-gray-100">
                 <CheckCircle2 className="w-16 h-16 mx-auto text-green-400 mb-4" />
                 <p className="text-lg">ไม่มีกำหนดการในขณะนี้</p>
-              </div>
-            )}
-
-            {/* Quick Actions */}
-            {sow.status !== 'CULLED' && (
-              <div>
-                <h3 className="text-sm font-bold text-gray-500 mb-3 px-1">การจัดการอื่นๆ</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {sow.status === 'IDLE' && (
-                    <button 
-                      onClick={() => setShowEventModal('BREED')}
-                      className="col-span-2 bg-pink-100 text-pink-700 font-bold py-4 text-lg rounded-xl hover:bg-pink-200"
-                    >
-                      บันทึกการผสมพันธุ์
-                    </button>
-                  )}
-                  {sow.status === 'CULL_SUGGESTED' && (
-                    <div className="col-span-2 bg-red-100 text-red-700 font-bold py-4 text-lg rounded-xl text-center border border-red-200">
-                      แม่หมูตัวนี้ควรคัดออก (ครบ 7 รอบ)
-                    </div>
-                  )}
-                  {(sow.status !== 'IDLE' && sow.status !== 'CULL_SUGGESTED') && (
-                    <button 
-                      onClick={() => setShowEventModal('RETURN_ESTRUS')}
-                      className="col-span-1 bg-white border border-gray-200 text-gray-700 font-bold py-4 text-lg rounded-xl hover:bg-gray-50 shadow-sm"
-                    >
-                      กลับสัด
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => setShowEventModal('CULL')}
-                    className={cn("font-bold py-4 text-lg rounded-xl hover:bg-red-100 bg-white border border-red-200 text-red-600 shadow-sm", (sow.status === 'IDLE' || sow.status === 'CULL_SUGGESTED') ? 'col-span-2' : 'col-span-1')}
-                  >
-                    คัดออก
-                  </button>
-                </div>
               </div>
             )}
           </section>
@@ -206,12 +205,7 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
                                 )}
                                 {event.type === 'CHECK_ESTRUS' && event.pregResult && (
                                   <p>ผลตรวจ: <span className={cn("font-bold", event.pregResult === 'POSITIVE' ? 'text-green-600' : 'text-red-600')}>
-                                    {event.pregResult === 'POSITIVE' ? 'ไม่กลับสัด' : 'กลับสัด (ไม่ติด)'}
-                                  </span></p>
-                                )}
-                                {event.type === 'ULTRASOUND' && event.pregResult && (
-                                  <p>ผลตรวจ: <span className={cn("font-bold", event.pregResult === 'POSITIVE' ? 'text-green-600' : 'text-red-600')}>
-                                    {event.pregResult === 'POSITIVE' ? 'ท้อง' : event.pregResult === 'NEGATIVE' ? 'ไม่ท้อง' : 'แท้ง'}
+                                    {event.pregResult === 'POSITIVE' ? 'ไม่กลับสัด (ท้อง)' : event.pregResult === 'NEGATIVE' ? 'กลับสัด (ไม่ติด)' : 'แท้ง'}
                                   </span></p>
                                 )}
                                 {event.type === 'FARROW' && (
@@ -234,7 +228,22 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
                                     {event.cullPrice && <p>ราคาขาย: <span className="font-bold">{event.cullPrice}</span> บาท</p>}
                                   </div>
                                 )}
-                                {event.notes && <p className="text-gray-500 italic mt-2">"{event.notes}"</p>}
+                                {event.type === 'HEALTH_NOTE' && (
+                                  <div className={cn(
+                                    "p-3 rounded-md mt-2 border",
+                                    event.noteCategory === 'SICK' ? "bg-red-50 border-red-100 text-red-800" :
+                                    event.noteCategory === 'VACCINE' ? "bg-blue-50 border-blue-100 text-blue-800" :
+                                    "bg-gray-50 border-gray-200 text-gray-800"
+                                  )}>
+                                    <p className="font-bold mb-1">
+                                      {event.noteCategory === 'SICK' ? '💊 ป่วย / รักษา' :
+                                       event.noteCategory === 'VACCINE' ? '💉 ฉีดวัคซีน / บำรุง' :
+                                       '📝 หมายเหตุทั่วไป'}
+                                    </p>
+                                    {event.notes && <p className="text-sm">{event.notes}</p>}
+                                  </div>
+                                )}
+                                {event.notes && event.type !== 'HEALTH_NOTE' && <p className="text-gray-500 italic mt-2">"{event.notes}"</p>}
                               </div>
                             </div>
                           </div>
@@ -273,6 +282,24 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
               </div>
 
               {/* Dynamic Fields based on Event Type */}
+              {showEventModal === 'HEALTH_NOTE' && (
+                <>
+                  <div>
+                    <label className="block text-base font-medium text-gray-700 mb-2">ประเภท</label>
+                    <select
+                      required
+                      className="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none bg-white text-lg"
+                      value={formData.noteCategory || 'GENERAL'}
+                      onChange={(e) => setFormData({...formData, noteCategory: e.target.value})}
+                    >
+                      <option value="SICK">ป่วย / รักษา</option>
+                      <option value="VACCINE">ฉีดวัคซีน / บำรุง</option>
+                      <option value="GENERAL">หมายเหตุทั่วไป</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
               {showEventModal === 'BREED' && (
                 <>
                   <div>
@@ -298,7 +325,7 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
 
               {showEventModal === 'CHECK_ESTRUS' && (
                 <div>
-                  <label className="block text-base font-medium text-gray-700 mb-2">ผลการตรวจสัด (21 วัน)</label>
+                  <label className="block text-base font-medium text-gray-700 mb-2">ผลการตรวจกลับสัด</label>
                   <select
                     required
                     className="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none bg-white text-lg"
@@ -306,24 +333,8 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
                     onChange={(e) => setFormData({...formData, pregResult: e.target.value})}
                   >
                     <option value="" disabled>เลือกผลการตรวจ</option>
-                    <option value="POSITIVE">ไม่กลับสัด (รอยืนยันอัลตราซาวด์)</option>
+                    <option value="POSITIVE">ไม่กลับสัด (ท้อง)</option>
                     <option value="NEGATIVE">กลับสัด (ไม่ติด)</option>
-                  </select>
-                </div>
-              )}
-
-              {showEventModal === 'ULTRASOUND' && (
-                <div>
-                  <label className="block text-base font-medium text-gray-700 mb-2">ผลอัลตราซาวด์ (30 วัน)</label>
-                  <select
-                    required
-                    className="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none bg-white text-lg"
-                    value={formData.pregResult || ''}
-                    onChange={(e) => setFormData({...formData, pregResult: e.target.value})}
-                  >
-                    <option value="" disabled>เลือกผลการตรวจ</option>
-                    <option value="POSITIVE">ท้อง (พบตัวอ่อน)</option>
-                    <option value="NEGATIVE">ไม่ท้อง (ท้องลม)</option>
                     <option value="ABORTION">แท้ง</option>
                   </select>
                 </div>

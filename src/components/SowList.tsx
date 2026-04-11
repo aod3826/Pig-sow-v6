@@ -68,12 +68,12 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
     <div className="p-4 flex flex-col h-full">
       <div className="flex gap-2 mb-3">
         <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="h-6 w-6 text-gray-400" />
           </div>
           <input
             type="text"
-            className="block w-full pl-11 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-base"
+            className="block w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-lg"
             placeholder="ค้นหารหัสแม่หมู..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -81,20 +81,20 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
         </div>
         <button 
           onClick={() => exportSowsToCSV(sows)}
-          className="bg-white border border-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-50 flex items-center justify-center transition-colors shadow-sm"
+          className="bg-white border border-gray-300 text-gray-700 px-5 py-4 rounded-xl hover:bg-gray-50 flex items-center justify-center transition-colors shadow-sm"
           title="ส่งออกข้อมูล (CSV)"
         >
-          <Download className="w-6 h-6" />
+          <Download className="w-7 h-7" />
         </button>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-6">
         <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Filter className="h-5 w-5 text-gray-400" />
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Filter className="h-6 w-6 text-gray-400" />
           </div>
           <select
-            className="block w-full pl-10 pr-8 py-3 border border-gray-300 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-base appearance-none"
+            className="block w-full pl-12 pr-8 py-4 border border-gray-300 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-lg appearance-none"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -105,11 +105,11 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
           </select>
         </div>
         <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <ArrowUpDown className="h-5 w-5 text-gray-400" />
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <ArrowUpDown className="h-6 w-6 text-gray-400" />
           </div>
           <select
-            className="block w-full pl-10 pr-8 py-3 border border-gray-300 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-base appearance-none"
+            className="block w-full pl-12 pr-8 py-4 border border-gray-300 rounded-xl leading-5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-lg appearance-none"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
@@ -143,25 +143,25 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="font-bold text-2xl text-gray-900">{sow.id}</h3>
-                    <div className="flex flex-col gap-1 mt-1">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Calendar className="w-4 h-4 mr-1" />
+                    <h3 className="font-bold text-3xl text-gray-900">{sow.id}</h3>
+                    <div className="flex flex-col gap-1 mt-2">
+                      <div className="flex items-center text-base text-gray-500">
+                        <Calendar className="w-5 h-5 mr-2" />
                         <span>เข้าเล้า: {formatDate(sow.entryDate)}</span>
                       </div>
                       {sow.birthDate && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Calendar className="w-4 h-4 mr-1" />
+                        <div className="flex items-center text-base text-gray-500">
+                          <Calendar className="w-5 h-5 mr-2" />
                           <span>วันเกิด: {formatDate(sow.birthDate)}</span>
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span className={cn("inline-block px-4 py-1.5 text-sm font-bold rounded-full border", getStatusColor(sow.status))}>
+                    <span className={cn("inline-block px-4 py-2 text-base font-bold rounded-full border", getStatusColor(sow.status))}>
                       {STATUS_LABELS[sow.status]}
                     </span>
-                    <span className="inline-block px-3 py-1 text-xs font-bold rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                    <span className="inline-block px-4 py-1.5 text-sm font-bold rounded-full bg-gray-100 text-gray-600 border border-gray-200">
                       รอบที่ {Math.min((sow.parity ?? 0) + 1, 7)}/7
                     </span>
                   </div>
@@ -169,31 +169,31 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
 
                 {sow.status !== 'IDLE' && sow.status !== 'CULLED' && (
                   <div className="mb-4">
-                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                       <div 
-                        className="bg-pink-500 h-2 rounded-full transition-all duration-500" 
+                        className="bg-pink-500 h-3 rounded-full transition-all duration-500" 
                         style={{ width: `${getProgress(sow)}%` }}
                       ></div>
                     </div>
                   </div>
                 )}
 
-                <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                   {nextTask ? (
                     <>
                       <div className="flex items-center gap-2">
                         <div className={cn(
-                          "w-2.5 h-2.5 rounded-full",
+                          "w-3 h-3 rounded-full",
                           nextTask.daysDiff < 0 ? "bg-red-500" :
                           nextTask.daysDiff === 0 ? "bg-yellow-500" :
                           "bg-green-500"
                         )}></div>
-                        <span className="text-sm font-medium text-gray-600">
-                          ถัดไป: <span className="text-gray-900 font-bold text-base">{EVENT_LABELS[nextTask.type]}</span>
+                        <span className="text-base font-medium text-gray-600">
+                          ถัดไป: <span className="text-gray-900 font-bold text-lg">{EVENT_LABELS[nextTask.type]}</span>
                         </span>
                       </div>
                       <span className={cn(
-                        "text-sm font-bold bg-gray-50 px-2 py-1 rounded-md",
+                        "text-base font-bold bg-gray-50 px-3 py-1.5 rounded-lg",
                         nextTask.daysDiff < 0 ? "text-red-600 bg-red-50" :
                         nextTask.daysDiff === 0 ? "text-yellow-600 bg-yellow-50" :
                         "text-green-600 bg-green-50"
@@ -204,8 +204,8 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
                       </span>
                     </>
                   ) : (
-                    <div className="text-sm text-gray-400 flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div className="text-base text-gray-400 flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-gray-300"></div>
                       ไม่มีกำหนดการถัดไป
                     </div>
                   )}

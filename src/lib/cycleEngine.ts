@@ -4,8 +4,7 @@ import { getDateStatus, getDaysDiff } from './utils';
 
 // Define the cycle rules
 export const CYCLE_RULES = {
-  CHECK_ESTRUS: 21, // days after breed
-  ULTRASOUND: 30, // days after breed
+  CHECK_ESTRUS: 28, // days after breed
   FEED_BOOST: 85, // days after breed
   MOVE_TO_PEN: 108, // days after breed
   FARROW: 114, // days after breed
@@ -16,14 +15,14 @@ export const CYCLE_RULES = {
 export const EVENT_LABELS: Record<EventType, string> = {
   ENTRY: 'เข้าเล้า',
   BREED: 'ผสมพันธุ์',
-  CHECK_ESTRUS: 'ตรวจสัด',
-  ULTRASOUND: 'อัลตราซาวด์',
+  CHECK_ESTRUS: 'ตรวจกลับสัด',
   FEED_BOOST: 'บำรุงอาหาร',
   MOVE_TO_PEN: 'ย้ายเข้าคอกคลอด',
   FARROW: 'คลอด',
   WEAN: 'หย่านม',
   RETURN_ESTRUS: 'กลับสัด',
   CULL: 'คัดออก',
+  HEALTH_NOTE: 'บันทึกสุขภาพ/หมายเหตุ',
 };
 
 export const STATUS_LABELS: Record<Sow['status'], string> = {
@@ -56,12 +55,10 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
   const eventsAfterBreed = lastBreedIndex !== -1 ? sow.history.slice(lastBreedIndex + 1) : [];
 
   if (sow.status === 'BRED' && sow.currentCycleStartDate) {
-    // Hasn't done ultrasound yet
-    const hasUltrasound = eventsAfterBreed.some(e => e.type === 'ULTRASOUND');
+    // Hasn't done check estrus yet
     const hasCheckEstrus = eventsAfterBreed.some(e => e.type === 'CHECK_ESTRUS');
     
     if (!hasCheckEstrus) addTask('CHECK_ESTRUS', sow.currentCycleStartDate, CYCLE_RULES.CHECK_ESTRUS);
-    if (!hasUltrasound) addTask('ULTRASOUND', sow.currentCycleStartDate, CYCLE_RULES.ULTRASOUND);
   }
 
   if (sow.status === 'PREGNANT' && sow.currentCycleStartDate) {
@@ -85,7 +82,7 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
     if (lastEvent) {
       if (lastEvent.type === 'WEAN') {
         addTask('BREED', lastEvent.date, CYCLE_RULES.REBREED);
-      } else if (['CHECK_ESTRUS', 'ULTRASOUND', 'RETURN_ESTRUS'].includes(lastEvent.type)) {
+      } else if (['CHECK_ESTRUS', 'RETURN_ESTRUS'].includes(lastEvent.type)) {
         addTask('BREED', lastEvent.date, 0); // Breed immediately
       } else if (lastEvent.type === 'ENTRY') {
         addTask('BREED', lastEvent.date, 0); // Ready to breed
