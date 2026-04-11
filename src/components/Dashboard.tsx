@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sow } from '../types';
-import { getAllTasks, EVENT_LABELS, STATUS_LABELS } from '../lib/cycleEngine';
+import { getAllTasks, EVENT_LABELS, STATUS_LABELS, getUpcomingTasksForSow } from '../lib/cycleEngine';
 import { cn, formatDate } from '../lib/utils';
-import { AlertCircle, Calendar, CheckCircle2, TrendingUp, HelpCircle, X } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, TrendingUp, HelpCircle, X, BellRing } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface DashboardProps {
   sows: Sow[];
@@ -11,6 +12,80 @@ interface DashboardProps {
 
 export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
   const [showLegend, setShowLegend] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotifPermission(Notification.permission);
+    }
+  }, []);
+
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      setNotifPermission(permission);
+      if (permission === 'granted') {
+        checkAndSendNotifications(true);
+      }
+    }
+  };
+
+  const checkAndSendNotifications = async (force = false) => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const lastNotified = localStorage.getItem('lastNotificationDate');
+
+    if (!force && lastNotified === todayStr) return;
+
+    let todayCount = 0;
+    let overdueCount = 0;
+
+    sows.forEach(sow => {
+      const tasks = getUpcomingTasksForSow(sow);
+      tasks.forEach(task => {
+        if (task.status === 'TODAY') todayCount++;
+        if (task.status === 'OVERDUE') overdueCount++;
+      });
+    });
+
+    const total = todayCount + overdueCount;
+
+    if (total > 0) {
+      const title = 'นิพนธุ์ฟาร์ม - แจ้งเตือนงานด่วน 🐷';
+      const body = `คุณมีงานที่ต้องทำวันนี้ ${total} งาน\n(ถึงกำหนด ${todayCount} งาน, เลยกำหนด ${overdueCount} งาน)`;
+      
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        registration.showNotification(title, {
+          body,
+          icon: '/icon.svg',
+          badge: '/icon.svg',
+          vibrate: [200, 100, 200]
+        });
+      } catch (e) {
+        new Notification(title, { body, icon: '/icon.svg' });
+      }
+      localStorage.setItem('lastNotificationDate', todayStr);
+    } else if (force) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        registration.showNotification('นิพนธุ์ฟาร์ม', {
+          body: 'เปิดการแจ้งเตือนสำเร็จ! เราจะแจ้งเตือนคุณเมื่อมีงานด่วน',
+          icon: '/icon.svg'
+        });
+      } catch (e) {
+        new Notification('นิพนธุ์ฟาร์ม', { body: 'เปิดการแจ้งเตือนสำเร็จ!' });
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (sows.length > 0 && notifPermission === 'granted') {
+      checkAndSendNotifications();
+    }
+  }, [sows, notifPermission]);
+
   const allTasks = getAllTasks(sows);
   const overdueTasks = allTasks.filter(t => t.status === 'OVERDUE');
   const todayTasks = allTasks.filter(t => t.status === 'TODAY');
@@ -56,6 +131,27 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
           <HelpCircle className="w-6 h-6" />
         </button>
       </div>
+
+      {/* Notification Banner */}
+      {notifPermission === 'default' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 p-2 rounded-full text-blue-600 shrink-0">
+              <BellRing className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-blue-900 text-sm sm:text-base">เปิดการแจ้งเตือน</h3>
+              <p className="text-xs sm:text-sm text-blue-700">รับแจ้งเตือนงานด่วนและงานที่เลยกำหนด</p>
+            </div>
+          </div>
+          <button 
+            onClick={requestNotificationPermission}
+            className="ml-2 px-3 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm"
+          >
+            เปิดใช้งาน
+          </button>
+        </div>
+      )}
 
       {/* Urgent Tasks (Today's To-Do) */}
       <section>

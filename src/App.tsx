@@ -13,7 +13,7 @@ import CalendarView from './components/CalendarView';
 import { LayoutDashboard, List, PlusCircle, LogOut, CalendarDays } from 'lucide-react';
 import { cn } from './lib/utils';
 import { auth } from './firebase';
-import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
 
 export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -36,7 +36,8 @@ export default function App() {
 
   const handleLogin = () => {
     const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider).catch(error => {
+    // Use signInWithRedirect instead of signInWithPopup to avoid popup blocking issues on mobile and Vercel
+    signInWithRedirect(auth, provider).catch(error => {
       console.error("Login failed:", error);
       alert("การเข้าสู่ระบบล้มเหลว กรุณาลองใหม่อีกครั้ง");
     });
@@ -64,7 +65,7 @@ export default function App() {
       <div className="min-h-[100dvh] bg-slate-200 flex justify-center items-center">
         <div className="w-full max-w-2xl bg-white min-h-[100dvh] shadow-xl flex flex-col items-center justify-center p-8">
           <div className="text-7xl mb-6">🐷</div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">Sow Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">นิพนธุ์ฟาร์ม</h1>
           <p className="text-gray-500 mb-10 text-center text-lg">ระบบจัดการวงจรชีวิตแม่หมูในฟาร์ม</p>
           <button 
             onClick={handleLogin}
@@ -117,7 +118,7 @@ export default function App() {
       <div className="w-full max-w-2xl bg-slate-100 h-[100dvh] shadow-xl relative flex flex-col overflow-hidden">
         {/* Header */}
         <header className="bg-pink-600 text-white p-4 shadow-md z-10 flex justify-between items-center shrink-0">
-          <h1 className="text-2xl font-bold">🐷 Sow Management</h1>
+          <h1 className="text-2xl font-bold">🐷 นิพนธุ์ฟาร์ม</h1>
           <button onClick={handleLogout} className="p-2 hover:bg-pink-700 rounded-full transition-colors" title="ออกจากระบบ">
             <LogOut size={24} />
           </button>

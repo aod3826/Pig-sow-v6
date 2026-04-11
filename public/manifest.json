@@ -1,6 +1,6 @@
 {
-  "name": "Sow Management System",
-  "short_name": "Sow App",
+  "name": "นิพนธุ์ฟาร์ม",
+  "short_name": "นิพนธุ์ฟาร์ม",
   "description": "ระบบจัดการวงจรชีวิตแม่หมูในฟาร์ม",
   "start_url": "/",
   "display": "standalone",
