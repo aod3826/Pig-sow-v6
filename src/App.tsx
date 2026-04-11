@@ -95,7 +95,7 @@ export default function App() {
         setSelectedSowId(null);
         return null;
       }
-      return <SowDetails sow={sow} onBack={() => setSelectedSowId(null)} onRecordEvent={recordEvent} onDelete={() => { deleteSow(sow.id); setSelectedSowId(null); }} />;
+      return <SowDetails sow={sow} allSows={sows} onBack={() => setSelectedSowId(null)} onRecordEvent={recordEvent} onDelete={() => { deleteSow(sow.id); setSelectedSowId(null); }} />;
     }
 
     switch (activeTab) {

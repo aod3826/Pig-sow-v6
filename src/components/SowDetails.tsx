@@ -7,13 +7,17 @@ import { format } from 'date-fns';
 
 interface SowDetailsProps {
   sow: Sow;
+  allSows: Sow[];
   onBack: () => void;
   onRecordEvent: (sowId: string, type: EventType, date: string, pigletCount?: number, notes?: string) => void;
   onDelete: () => void;
 }
 
-export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: SowDetailsProps) {
+export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDelete }: SowDetailsProps) {
   const tasks = getUpcomingTasksForSow(sow);
+  const uniqueBoars = Array.from(new Set(allSows.flatMap(s => s.history.map(h => h.boarId)).filter(Boolean))) as string[];
+  const uniqueSemen = Array.from(new Set(allSows.flatMap(s => s.history.map(h => h.semenId)).filter(Boolean))) as string[];
+  const uniqueSemenSources = Array.from(new Set(allSows.flatMap(s => s.history.map(h => h.semenSource)).filter(Boolean))) as string[];
   const [activeTab, setActiveTab] = useState<'tasks' | 'history'>('tasks');
   const [showEventModal, setShowEventModal] = useState<EventType | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -199,7 +203,10 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
                               <div className="mt-2 text-base text-gray-700 space-y-1">
                                 {event.type === 'BREED' && (
                                   <>
-                                    {event.boarId && <p>พ่อพันธุ์: <span className="font-medium">{event.boarId}</span></p>}
+                                    <p>วิธีผสม: <span className="font-medium">{event.breedingMethod === 'NATURAL' ? 'ผสมจริง' : 'ผสมเทียม'}</span></p>
+                                    {event.breedingMethod === 'NATURAL' && event.boarId && <p>เบอร์หูพ่อพันธุ์: <span className="font-medium">{event.boarId}</span></p>}
+                                    {event.breedingMethod !== 'NATURAL' && event.semenId && <p>รหัสน้ำเชื้อ: <span className="font-medium">{event.semenId}</span></p>}
+                                    {event.breedingMethod !== 'NATURAL' && event.semenSource && <p>แหล่งที่มา: <span className="font-medium">{event.semenSource}</span></p>}
                                     {event.inseminator && <p>ผู้ผสม: <span className="font-medium">{event.inseminator}</span></p>}
                                   </>
                                 )}
@@ -303,14 +310,77 @@ export default function SowDetails({ sow, onBack, onRecordEvent, onDelete }: Sow
               {showEventModal === 'BREED' && (
                 <>
                   <div>
-                    <label className="block text-base font-medium text-gray-700 mb-2">รหัสพ่อพันธุ์ / เบอร์น้ำเชื้อ</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none text-lg"
-                      value={formData.boarId || ''}
-                      onChange={(e) => setFormData({...formData, boarId: e.target.value})}
-                    />
+                    <label className="block text-base font-medium text-gray-700 mb-2">วิธีการผสม</label>
+                    <div className="flex gap-6">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name="breedingMethod" 
+                          value="ARTIFICIAL" 
+                          checked={formData.breedingMethod !== 'NATURAL'} 
+                          onChange={() => setFormData({...formData, breedingMethod: 'ARTIFICIAL'})}
+                          className="w-5 h-5 text-pink-600 focus:ring-pink-500"
+                        />
+                        <span className="text-lg">ผสมเทียม</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name="breedingMethod" 
+                          value="NATURAL" 
+                          checked={formData.breedingMethod === 'NATURAL'} 
+                          onChange={() => setFormData({...formData, breedingMethod: 'NATURAL'})}
+                          className="w-5 h-5 text-pink-600 focus:ring-pink-500"
+                        />
+                        <span className="text-lg">ผสมจริง</span>
+                      </label>
+                    </div>
                   </div>
+                  {formData.breedingMethod === 'NATURAL' && (
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">เบอร์หูพ่อพันธุ์</label>
+                      <input
+                        type="text"
+                        list="boar-list"
+                        className="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none text-lg"
+                        value={formData.boarId || ''}
+                        onChange={(e) => setFormData({...formData, boarId: e.target.value})}
+                      />
+                      <datalist id="boar-list">
+                        {uniqueBoars.map(id => <option key={id} value={id} />)}
+                      </datalist>
+                    </div>
+                  )}
+                  {formData.breedingMethod !== 'NATURAL' && (
+                    <>
+                      <div>
+                        <label className="block text-base font-medium text-gray-700 mb-2">รหัสน้ำเชื้อ</label>
+                        <input
+                          type="text"
+                          list="semen-list"
+                          className="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none text-lg"
+                          value={formData.semenId || ''}
+                          onChange={(e) => setFormData({...formData, semenId: e.target.value})}
+                        />
+                        <datalist id="semen-list">
+                          {uniqueSemen.map(id => <option key={id} value={id} />)}
+                        </datalist>
+                      </div>
+                      <div>
+                        <label className="block text-base font-medium text-gray-700 mb-2">แหล่งที่มา / จากฟาร์ม</label>
+                        <input
+                          type="text"
+                          list="source-list"
+                          className="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none text-lg"
+                          value={formData.semenSource || ''}
+                          onChange={(e) => setFormData({...formData, semenSource: e.target.value})}
+                        />
+                        <datalist id="source-list">
+                          {uniqueSemenSources.map(src => <option key={src} value={src} />)}
+                        </datalist>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <label className="block text-base font-medium text-gray-700 mb-2">ผู้ผสม</label>
                     <input

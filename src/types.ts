@@ -25,7 +25,10 @@ export interface SowEvent {
   noteCategory?: 'SICK' | 'VACCINE' | 'GENERAL';
   
   // BREED
+  breedingMethod?: 'NATURAL' | 'ARTIFICIAL';
   boarId?: string;
+  semenId?: string;
+  semenSource?: string;
   inseminator?: string;
   
   // PREG_CHECK (CHECK_ESTRUS, ULTRASOUND)
