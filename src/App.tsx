@@ -10,7 +10,8 @@ import SowList from './components/SowList';
 import AddSow from './components/AddSow';
 import SowDetails from './components/SowDetails';
 import CalendarView from './components/CalendarView';
-import { LayoutDashboard, List, PlusCircle, LogOut, CalendarDays } from 'lucide-react';
+import SalesManager from './components/Sales/SalesManager';
+import { LayoutDashboard, List, PlusCircle, LogOut, CalendarDays, PiggyBank, Menu, X } from 'lucide-react';
 import { cn } from './lib/utils';
 import { auth } from './firebase';
 import { signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -19,8 +20,9 @@ export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [user, setUser] = useState<any>(null);
   const { sows, addSow, recordEvent, deleteSow, loading } = useSows(isAuthReady && !!user);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'list' | 'add' | 'calendar'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'list' | 'add' | 'calendar' | 'sales'>('dashboard');
   const [selectedSowId, setSelectedSowId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -105,6 +107,8 @@ export default function App() {
         return <SowList sows={sows} onSelectSow={setSelectedSowId} />;
       case 'calendar':
         return <CalendarView sows={sows} onSelectSow={setSelectedSowId} />;
+      case 'sales':
+        return <SalesManager isAuthReady={isAuthReady && !!user} />;
       case 'add':
         return <AddSow onAdd={(id, breed, birthDate, entryDate) => { addSow(id, breed, birthDate, entryDate); setActiveTab('list'); }} />;
       default:
@@ -113,15 +117,51 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-slate-200 flex justify-center">
-      <div className="w-full max-w-2xl bg-slate-100 h-[100dvh] shadow-xl relative flex flex-col overflow-hidden">
+    <div className="min-h-[100dvh] bg-slate-200 flex justify-center print:bg-white">
+      <div className="w-full max-w-2xl bg-slate-100 h-[100dvh] shadow-xl relative flex flex-col overflow-hidden print:max-w-none print:h-auto print:shadow-none print:bg-white print:overflow-visible">
         {/* Header */}
-        <header className="bg-pink-600 text-white p-4 shadow-md z-10 flex justify-between items-center shrink-0">
-          <h1 className="text-2xl font-bold">🐷 นิพนธุ์ฟาร์ม</h1>
+        <header className="bg-pink-600 text-white p-4 shadow-md z-10 flex justify-between items-center shrink-0 print:hidden">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsSidebarOpen(true)} className="p-1 hover:bg-pink-700 rounded-lg transition-colors">
+              <Menu size={28} />
+            </button>
+            <h1 className="text-2xl font-bold">🐷 นิพนธุ์ฟาร์ม</h1>
+          </div>
           <button onClick={handleLogout} className="p-2 hover:bg-pink-700 rounded-full transition-colors" title="ออกจากระบบ">
             <LogOut size={24} />
           </button>
         </header>
+
+        {/* Sidebar Overlay */}
+        {isSidebarOpen && (
+          <div className="fixed inset-0 z-50 flex">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
+            <div className="relative w-64 bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
+              <div className="p-6 border-b flex justify-between items-center bg-pink-50">
+                <h2 className="text-xl font-bold text-pink-800">เมนูระบบ</h2>
+                <button onClick={() => setIsSidebarOpen(false)} className="p-2 text-gray-500 hover:bg-pink-100 rounded-full">
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto py-4">
+                <button 
+                  onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); setSelectedSowId(null); }}
+                  className={cn("w-full flex items-center gap-3 px-6 py-4 text-left font-medium transition-colors", activeTab !== 'sales' ? "bg-pink-50 text-pink-700 border-r-4 border-pink-600" : "text-gray-700 hover:bg-gray-50")}
+                >
+                  <LayoutDashboard size={24} />
+                  ระบบแม่พันธุ์
+                </button>
+                <button 
+                  onClick={() => { setActiveTab('sales'); setIsSidebarOpen(false); setSelectedSowId(null); }}
+                  className={cn("w-full flex items-center gap-3 px-6 py-4 text-left font-medium transition-colors", activeTab === 'sales' ? "bg-pink-50 text-pink-700 border-r-4 border-pink-600" : "text-gray-700 hover:bg-gray-50")}
+                >
+                  <PiggyBank size={24} />
+                  ระบบหมูขุน (ขายหมู)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto">
@@ -129,7 +169,7 @@ export default function App() {
         </main>
 
         {/* Bottom Navigation */}
-        {!selectedSowId && (
+        {!selectedSowId && activeTab !== 'sales' && (
           <nav className="w-full bg-white border-t border-gray-200 flex justify-around p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-20 shrink-0">
             <button 
               onClick={() => setActiveTab('dashboard')}

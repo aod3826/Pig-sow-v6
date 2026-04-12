@@ -65,6 +65,34 @@ export interface Sow {
   history: SowEvent[];
 }
 
+export interface WeighingRecord {
+  id: string;
+  grossWeight: number; // น้ำหนักรวม
+  tareWeight: number; // น้ำหนักกรง/ชุด
+  netWeight: number; // น้ำหนักสุทธิ
+}
+
+export interface SaleRecord {
+  id: string;
+  buyerName: string;
+  buyerEmail?: string;
+  sellerName: string;
+  vehicleReg: string;
+  saleType: string;
+  date: string;
+  weighings: WeighingRecord[];
+  totalPigs: number;
+  totalNetWeight: number;
+  avgWeight: number;
+  pricePerKg: number;
+  grossTotal: number;
+  deductions: number;
+  netTotal: number;
+  paymentStatus: 'PAID' | 'UNPAID';
+  signature?: string;
+  createdAt?: string;
+}
+
 export interface Task {
   id: string; // Unique ID for the task
   sowId: string;

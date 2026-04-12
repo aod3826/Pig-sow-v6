@@ -24,11 +24,15 @@
       "type": "object",
       "properties": {
         "sowId": { "type": "string" },
-        "type": { "type": "string", "enum": ["ENTRY", "BREED", "CHECK_ESTRUS", "ULTRASOUND", "FEED_BOOST", "MOVE_TO_PEN", "FARROW", "WEAN", "RETURN_ESTRUS", "CULL"] },
+        "type": { "type": "string", "enum": ["ENTRY", "BREED", "CHECK_ESTRUS", "ULTRASOUND", "FEED_BOOST", "MOVE_TO_PEN", "FARROW", "WEAN", "RETURN_ESTRUS", "CULL", "HEALTH_NOTE"] },
         "date": { "type": "string", "format": "date-time" },
         "parity": { "type": "number" },
         "notes": { "type": "string" },
+        "noteCategory": { "type": "string", "enum": ["SICK", "VACCINE", "GENERAL"] },
+        "breedingMethod": { "type": "string", "enum": ["NATURAL", "ARTIFICIAL"] },
         "boarId": { "type": "string" },
+        "semenId": { "type": "string" },
+        "semenSource": { "type": "string" },
         "inseminator": { "type": "string" },
         "pregResult": { "type": "string", "enum": ["POSITIVE", "NEGATIVE", "ABORTION"] },
         "pigletCount": { "type": "number" },
@@ -43,6 +47,41 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["sowId", "type", "date", "parity"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "A record of fattening pigs sale",
+      "type": "object",
+      "properties": {
+        "buyerName": { "type": "string" },
+        "buyerEmail": { "type": "string" },
+        "vehicleReg": { "type": "string" },
+        "date": { "type": "string" },
+        "weighings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "pigCount": { "type": "number" },
+              "grossWeight": { "type": "number" },
+              "tareWeight": { "type": "number" },
+              "netWeight": { "type": "number" }
+            }
+          }
+        },
+        "totalPigs": { "type": "number" },
+        "totalNetWeight": { "type": "number" },
+        "avgWeight": { "type": "number" },
+        "pricePerKg": { "type": "number" },
+        "grossTotal": { "type": "number" },
+        "deductions": { "type": "number" },
+        "netTotal": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["PAID", "UNPAID"] },
+        "signature": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["buyerName", "date", "totalPigs", "totalNetWeight", "paymentStatus"]
     }
   },
   "firestore": {
@@ -53,6 +92,10 @@
     "/sows/{sowId}/activities/{activityId}": {
       "schema": { "$ref": "#/entities/Activity" },
       "description": "Stores activities for a specific sow"
+    },
+    "/sales/{saleId}": {
+      "schema": { "$ref": "#/entities/Sale" },
+      "description": "Stores all sales records"
     }
   }
 }
