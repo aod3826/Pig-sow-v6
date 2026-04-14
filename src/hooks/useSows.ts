@@ -188,14 +188,15 @@ export function useSows(isAuthReady: boolean) {
       case 'CHECK_ESTRUS':
         if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {
           newStatus = 'IDLE';
+        } else if (payload.pregResult === 'POSITIVE') {
+          newStatus = 'BRED'; // Keep as BRED until VISUAL_PREG_CHECK confirms
         }
-        // If POSITIVE, status remains BRED (wait for ULTRASOUND to confirm PREGNANT)
         break;
-      case 'ULTRASOUND':
-        if (payload.pregResult === 'POSITIVE') {
-          newStatus = 'PREGNANT';
-        } else if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {
+      case 'VISUAL_PREG_CHECK':
+        if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {
           newStatus = 'IDLE';
+        } else if (payload.pregResult === 'POSITIVE') {
+          newStatus = 'PREGNANT'; // Confirmed pregnant
         }
         break;
       case 'MOVE_TO_PEN':

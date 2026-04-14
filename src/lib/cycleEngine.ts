@@ -4,7 +4,8 @@ import { getDateStatus, getDaysDiff } from './utils';
 
 // Define the cycle rules
 export const CYCLE_RULES = {
-  CHECK_ESTRUS: 28, // days after breed
+  CHECK_ESTRUS: 21, // days after breed
+  VISUAL_PREG_CHECK: 60, // days after breed
   FEED_BOOST: 85, // days after breed
   MOVE_TO_PEN: 108, // days after breed
   FARROW: 114, // days after breed
@@ -15,7 +16,8 @@ export const CYCLE_RULES = {
 export const EVENT_LABELS: Record<EventType, string> = {
   ENTRY: 'เข้าเล้า',
   BREED: 'ผสมพันธุ์',
-  CHECK_ESTRUS: 'ตรวจกลับสัด',
+  CHECK_ESTRUS: 'ตรวจกลับสัด (21 วัน)',
+  VISUAL_PREG_CHECK: 'ตรวจพุงแม่หมู (60 วัน)',
   FEED_BOOST: 'บำรุงอาหาร',
   MOVE_TO_PEN: 'ย้ายเข้าคอกคลอด',
   FARROW: 'คลอด',
@@ -57,16 +59,30 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
   if (sow.status === 'BRED' && sow.currentCycleStartDate) {
     // Hasn't done check estrus yet
     const hasCheckEstrus = eventsAfterBreed.some(e => e.type === 'CHECK_ESTRUS');
+    const hasVisualCheck = eventsAfterBreed.some(e => e.type === 'VISUAL_PREG_CHECK');
     
-    if (!hasCheckEstrus) addTask('CHECK_ESTRUS', sow.currentCycleStartDate, CYCLE_RULES.CHECK_ESTRUS);
+    if (!hasCheckEstrus) {
+      addTask('CHECK_ESTRUS', sow.currentCycleStartDate, CYCLE_RULES.CHECK_ESTRUS);
+    } else if (!hasVisualCheck) {
+      addTask('VISUAL_PREG_CHECK', sow.currentCycleStartDate, CYCLE_RULES.VISUAL_PREG_CHECK);
+    }
   }
 
   if (sow.status === 'PREGNANT' && sow.currentCycleStartDate) {
+    const hasVisualCheck = eventsAfterBreed.some(e => e.type === 'VISUAL_PREG_CHECK');
     const hasFeedBoost = eventsAfterBreed.some(e => e.type === 'FEED_BOOST');
     const hasMoveToPen = eventsAfterBreed.some(e => e.type === 'MOVE_TO_PEN');
 
-    if (!hasFeedBoost) addTask('FEED_BOOST', sow.currentCycleStartDate, CYCLE_RULES.FEED_BOOST);
-    if (!hasMoveToPen) addTask('MOVE_TO_PEN', sow.currentCycleStartDate, CYCLE_RULES.MOVE_TO_PEN);
+    // For backward compatibility: if they are PREGNANT but haven't done Visual Check, show it first
+    if (!hasVisualCheck) {
+      addTask('VISUAL_PREG_CHECK', sow.currentCycleStartDate, CYCLE_RULES.VISUAL_PREG_CHECK);
+    } else {
+      if (!hasFeedBoost) addTask('FEED_BOOST', sow.currentCycleStartDate, CYCLE_RULES.FEED_BOOST);
+      if (!hasMoveToPen) addTask('MOVE_TO_PEN', sow.currentCycleStartDate, CYCLE_RULES.MOVE_TO_PEN);
+      
+      // Also show FARROW task so they know when it's coming
+      addTask('FARROW', sow.currentCycleStartDate, CYCLE_RULES.FARROW);
+    }
   }
 
   if (sow.status === 'PREPARING' && sow.currentCycleStartDate) {
@@ -82,7 +98,7 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
     if (lastEvent) {
       if (lastEvent.type === 'WEAN') {
         addTask('BREED', lastEvent.date, CYCLE_RULES.REBREED);
-      } else if (['CHECK_ESTRUS', 'RETURN_ESTRUS'].includes(lastEvent.type)) {
+      } else if (['CHECK_ESTRUS', 'VISUAL_PREG_CHECK', 'RETURN_ESTRUS', 'ABORTION'].includes(lastEvent.type)) {
         addTask('BREED', lastEvent.date, 0); // Breed immediately
       } else if (lastEvent.type === 'ENTRY') {
         addTask('BREED', lastEvent.date, 0); // Ready to breed

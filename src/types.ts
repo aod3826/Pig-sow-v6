@@ -4,6 +4,7 @@ export type EventType =
   | 'ENTRY'
   | 'BREED' 
   | 'CHECK_ESTRUS' 
+  | 'VISUAL_PREG_CHECK'
   | 'FEED_BOOST' 
   | 'MOVE_TO_PEN' 
   | 'FARROW' 
@@ -31,8 +32,9 @@ export interface SowEvent {
   semenSource?: string;
   inseminator?: string;
   
-  // PREG_CHECK (CHECK_ESTRUS, ULTRASOUND)
+  // PREG_CHECK (CHECK_ESTRUS, VISUAL_PREG_CHECK)
   pregResult?: PregResult;
+  aiConfidence?: string;
   
   // FARROW
   pigletCount?: number; // Total or Live born
@@ -100,4 +102,15 @@ export interface Task {
   expectedDate: string;
   status: 'OVERDUE' | 'TODAY' | 'FUTURE';
   daysDiff: number;
+}
+
+export type ExpenseCategory = 'FEED' | 'MEDICINE' | 'EQUIPMENT' | 'MAINTENANCE' | 'UTILITIES' | 'SALARY' | 'OTHER';
+
+export interface ExpenseRecord {
+  id: string;
+  category: ExpenseCategory;
+  amount: number;
+  date: string; // ISO string
+  note?: string;
+  createdAt?: string;
 }

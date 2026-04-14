@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Sow, EventType } from '../types';
 import { getUpcomingTasksForSow, EVENT_LABELS, STATUS_LABELS } from '../lib/cycleEngine';
 import { cn, formatDate } from '../lib/utils';
-import { ArrowLeft, CheckCircle2, Circle, Clock, Trash2, ListTodo, History, MoreVertical, Stethoscope, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, Clock, Trash2, ListTodo, History, MoreVertical, Stethoscope, RefreshCw, AlertTriangle, Camera, Sparkles, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { generatePregnancyQuestions, analyzePregnancyResult } from '../services/geminiService';
 
 interface SowDetailsProps {
   sow: Sow;
@@ -25,6 +26,76 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
   const [formData, setFormData] = useState<any>({
     date: format(new Date(), 'yyyy-MM-dd')
   });
+
+  // AI Preg Check States
+  const [aiPhase, setAiPhase] = useState<'idle' | 'loading_questions' | 'questions_ready' | 'loading_result' | 'result_ready'>('idle');
+  const [aiImageBase64, setAiImageBase64] = useState<string | null>(null);
+  const [aiImageMimeType, setAiImageMimeType] = useState<string | null>(null);
+  const [aiQuestions, setAiQuestions] = useState<string[]>([]);
+  const [aiAnswers, setAiAnswers] = useState<string[]>([]);
+  const [aiResult, setAiResult] = useState<{ result: 'POSITIVE' | 'NEGATIVE', confidence: string, reasoning: string } | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const resetAiStates = () => {
+    setAiPhase('idle');
+    setAiImageBase64(null);
+    setAiImageMimeType(null);
+    setAiQuestions([]);
+    setAiAnswers([]);
+    setAiResult(null);
+    setAiError(null);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64String = (event.target?.result as string).split(',')[1];
+      setAiImageBase64(base64String);
+      setAiImageMimeType(file.type);
+      setAiPhase('idle');
+      setAiError(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGenerateQuestions = async () => {
+    if (!aiImageBase64 || !aiImageMimeType) return;
+    setAiPhase('loading_questions');
+    setAiError(null);
+    try {
+      const questions = await generatePregnancyQuestions(aiImageBase64, aiImageMimeType, sow);
+      setAiQuestions(questions);
+      setAiAnswers(new Array(questions.length).fill(''));
+      setAiPhase('questions_ready');
+    } catch (err: any) {
+      setAiError(err.message || 'เกิดข้อผิดพลาด');
+      setAiPhase('idle');
+    }
+  };
+
+  const handleAnalyzeResult = async () => {
+    if (!aiImageBase64 || !aiImageMimeType) return;
+    setAiPhase('loading_result');
+    setAiError(null);
+    try {
+      const qaList = aiQuestions.map((q, i) => ({ question: q, answer: aiAnswers[i] }));
+      const result = await analyzePregnancyResult(aiImageBase64, aiImageMimeType, sow, qaList);
+      setAiResult(result);
+      setFormData({
+        ...formData,
+        pregResult: result.result,
+        aiConfidence: result.confidence,
+        notes: `AI วิเคราะห์: ${result.reasoning}`
+      });
+      setAiPhase('result_ready');
+    } catch (err: any) {
+      setAiError(err.message || 'เกิดข้อผิดพลาด');
+      setAiPhase('questions_ready');
+    }
+  };
 
   const handleRecordEvent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +120,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
     
     setShowEventModal(null);
     setFormData({ date: format(new Date(), 'yyyy-MM-dd') });
+    resetAiStates();
   };
 
   return (
@@ -214,6 +286,14 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
                                   <p>ผลตรวจ: <span className={cn("font-bold", event.pregResult === 'POSITIVE' ? 'text-green-600' : 'text-red-600')}>
                                     {event.pregResult === 'POSITIVE' ? 'ไม่กลับสัด (ท้อง)' : event.pregResult === 'NEGATIVE' ? 'กลับสัด (ไม่ติด)' : 'แท้ง'}
                                   </span></p>
+                                )}
+                                {event.type === 'VISUAL_PREG_CHECK' && event.pregResult && (
+                                  <div className="bg-indigo-50 p-3 rounded-md mt-2 border border-indigo-100">
+                                    <p>ผลตรวจพุง: <span className={cn("font-bold", event.pregResult === 'POSITIVE' ? 'text-green-600' : 'text-red-600')}>
+                                      {event.pregResult === 'POSITIVE' ? 'ท้องชัวร์' : event.pregResult === 'NEGATIVE' ? 'ไม่ท้อง (ลม)' : 'แท้ง'}
+                                    </span></p>
+                                    {event.aiConfidence && <p className="text-sm text-indigo-700 mt-1">AI ประเมิน: {event.aiConfidence}</p>}
+                                  </div>
                                 )}
                                 {event.type === 'FARROW' && (
                                   <div className="bg-pink-50 p-3 rounded-md mt-2">
@@ -395,7 +475,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
 
               {showEventModal === 'CHECK_ESTRUS' && (
                 <div>
-                  <label className="block text-base font-medium text-gray-700 mb-2">ผลการตรวจกลับสัด</label>
+                  <label className="block text-base font-medium text-gray-700 mb-2">ผลการตรวจกลับสัด (21 วัน)</label>
                   <select
                     required
                     className="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none bg-white text-lg"
@@ -403,10 +483,124 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
                     onChange={(e) => setFormData({...formData, pregResult: e.target.value})}
                   >
                     <option value="" disabled>เลือกผลการตรวจ</option>
-                    <option value="POSITIVE">ไม่กลับสัด (ท้อง)</option>
+                    <option value="POSITIVE">ไม่กลับสัด (ไปต่อ)</option>
                     <option value="NEGATIVE">กลับสัด (ไม่ติด)</option>
                     <option value="ABORTION">แท้ง</option>
                   </select>
+                </div>
+              )}
+
+              {showEventModal === 'VISUAL_PREG_CHECK' && (
+                <div className="space-y-4">
+                  <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <h4 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" /> ให้ AI ช่วยประเมิน
+                    </h4>
+                    
+                    {aiPhase === 'idle' && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-indigo-600">
+                          อัปโหลดภาพถ่ายพุงและเต้านมแม่หมู เพื่อให้ AI ช่วยวิเคราะห์ร่วมกับประวัติการผสม
+                        </p>
+                        <label className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-indigo-300 border-dashed rounded-xl appearance-none cursor-pointer hover:border-indigo-400 focus:outline-none">
+                          <span className="flex items-center space-x-2">
+                            <Camera className="w-6 h-6 text-indigo-600" />
+                            <span className="font-medium text-indigo-600">ถ่ายรูป หรือ เลือกรูปภาพ</span>
+                          </span>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                        </label>
+                        {aiImageBase64 && (
+                          <div className="mt-2 text-center">
+                            <img src={`data:${aiImageMimeType};base64,${aiImageBase64}`} alt="Preview" className="h-32 mx-auto rounded-lg object-cover" />
+                            <button 
+                              type="button" 
+                              onClick={handleGenerateQuestions}
+                              className="mt-3 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-indigo-700"
+                            >
+                              เริ่มให้ AI วิเคราะห์
+                            </button>
+                          </div>
+                        )}
+                        {aiError && <p className="text-red-500 text-sm mt-2">{aiError}</p>}
+                      </div>
+                    )}
+
+                    {(aiPhase === 'loading_questions' || aiPhase === 'loading_result') && (
+                      <div className="flex flex-col items-center justify-center py-6">
+                        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-2" />
+                        <p className="text-indigo-700 font-medium">
+                          {aiPhase === 'loading_questions' ? 'AI กำลังวิเคราะห์ภาพและประวัติ...' : 'AI กำลังประมวลผลคำตอบ...'}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiPhase === 'questions_ready' && (
+                      <div className="space-y-4 animate-in fade-in">
+                        <p className="text-sm font-bold text-indigo-800">สัตวแพทย์ AI มีคำถามเพิ่มเติมเพื่อความแม่นยำ:</p>
+                        {aiQuestions.map((q, idx) => (
+                          <div key={idx}>
+                            <label className="block text-sm font-medium text-indigo-900 mb-1">{idx + 1}. {q}</label>
+                            <input
+                              type="text"
+                              className="w-full px-3 py-2 rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-base"
+                              placeholder="ตอบคำถาม..."
+                              value={aiAnswers[idx]}
+                              onChange={(e) => {
+                                const newAnswers = [...aiAnswers];
+                                newAnswers[idx] = e.target.value;
+                                setAiAnswers(newAnswers);
+                              }}
+                            />
+                          </div>
+                        ))}
+                        {aiError && <p className="text-red-500 text-sm">{aiError}</p>}
+                        <button 
+                          type="button" 
+                          onClick={handleAnalyzeResult}
+                          className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-indigo-700"
+                        >
+                          วิเคราะห์ผลลัพธ์
+                        </button>
+                      </div>
+                    )}
+
+                    {aiPhase === 'result_ready' && aiResult && (
+                      <div className="space-y-3 animate-in fade-in">
+                        <div className={cn("p-3 rounded-lg border", aiResult.result === 'POSITIVE' ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200")}>
+                          <p className="font-bold text-lg mb-1">
+                            ผลประเมิน: <span className={aiResult.result === 'POSITIVE' ? "text-green-700" : "text-red-700"}>
+                              {aiResult.result === 'POSITIVE' ? 'ท้องชัวร์' : 'ไม่ท้อง (ท้องลม)'}
+                            </span>
+                          </p>
+                          <p className="text-sm font-medium text-gray-700 mb-2">ความมั่นใจ: {aiResult.confidence}</p>
+                          <p className="text-sm text-gray-600">{aiResult.reasoning}</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={resetAiStates}
+                          className="text-sm text-indigo-600 hover:text-indigo-800 underline"
+                        >
+                          เริ่มวิเคราะห์ใหม่
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Manual Override */}
+                  <div className="pt-2 border-t border-gray-200">
+                    <label className="block text-base font-medium text-gray-700 mb-2">สรุปผลการตรวจพุงแม่หมู (60 วัน)</label>
+                    <select
+                      required
+                      className="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none bg-white text-lg"
+                      value={formData.pregResult || ''}
+                      onChange={(e) => setFormData({...formData, pregResult: e.target.value})}
+                    >
+                      <option value="" disabled>เลือกผลการตรวจ</option>
+                      <option value="POSITIVE">ท้องชัวร์ (พุงขยาย/เต้านมเต่ง)</option>
+                      <option value="NEGATIVE">ไม่ท้อง (ท้องลม)</option>
+                      <option value="ABORTION">แท้ง</option>
+                    </select>
+                  </div>
                 </div>
               )}
 

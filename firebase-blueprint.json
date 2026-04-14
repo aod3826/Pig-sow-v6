@@ -82,6 +82,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["buyerName", "date", "totalPigs", "totalNetWeight", "paymentStatus"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "A record of farm expenses",
+      "type": "object",
+      "properties": {
+        "category": { "type": "string", "enum": ["FEED", "MEDICINE", "EQUIPMENT", "MAINTENANCE", "UTILITIES", "SALARY", "OTHER"] },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["category", "amount", "date"]
     }
   },
   "firestore": {
@@ -96,6 +109,10 @@
     "/sales/{saleId}": {
       "schema": { "$ref": "#/entities/Sale" },
       "description": "Stores all sales records"
+    },
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Stores all farm expenses"
     }
   }
 }

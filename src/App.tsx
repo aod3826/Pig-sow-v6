@@ -11,7 +11,9 @@ import AddSow from './components/AddSow';
 import SowDetails from './components/SowDetails';
 import CalendarView from './components/CalendarView';
 import SalesManager from './components/Sales/SalesManager';
-import { LayoutDashboard, List, PlusCircle, LogOut, CalendarDays, PiggyBank, Menu, X } from 'lucide-react';
+import ExpenseManager from './components/Expenses/ExpenseManager';
+import FinancialReport from './components/Finance/FinancialReport';
+import { LayoutDashboard, List, PlusCircle, LogOut, CalendarDays, PiggyBank, Menu, X, Wallet, TrendingUp } from 'lucide-react';
 import { cn } from './lib/utils';
 import { auth } from './firebase';
 import { signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -20,7 +22,7 @@ export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [user, setUser] = useState<any>(null);
   const { sows, addSow, recordEvent, deleteSow, loading } = useSows(isAuthReady && !!user);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'list' | 'add' | 'calendar' | 'sales'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'list' | 'add' | 'calendar' | 'sales' | 'expenses' | 'report'>('dashboard');
   const [selectedSowId, setSelectedSowId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -109,6 +111,10 @@ export default function App() {
         return <CalendarView sows={sows} onSelectSow={setSelectedSowId} />;
       case 'sales':
         return <SalesManager isAuthReady={isAuthReady && !!user} />;
+      case 'expenses':
+        return <ExpenseManager isAuthReady={isAuthReady && !!user} />;
+      case 'report':
+        return <FinancialReport isAuthReady={isAuthReady && !!user} />;
       case 'add':
         return <AddSow onAdd={(id, breed, birthDate, entryDate) => { addSow(id, breed, birthDate, entryDate); setActiveTab('list'); }} />;
       default:
@@ -146,7 +152,7 @@ export default function App() {
               <div className="flex-1 overflow-y-auto py-4">
                 <button 
                   onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); setSelectedSowId(null); }}
-                  className={cn("w-full flex items-center gap-3 px-6 py-4 text-left font-medium transition-colors", activeTab !== 'sales' ? "bg-pink-50 text-pink-700 border-r-4 border-pink-600" : "text-gray-700 hover:bg-gray-50")}
+                  className={cn("w-full flex items-center gap-3 px-6 py-4 text-left font-medium transition-colors", ['dashboard', 'list', 'calendar', 'add'].includes(activeTab) ? "bg-pink-50 text-pink-700 border-r-4 border-pink-600" : "text-gray-700 hover:bg-gray-50")}
                 >
                   <LayoutDashboard size={24} />
                   ระบบแม่พันธุ์
@@ -157,6 +163,20 @@ export default function App() {
                 >
                   <PiggyBank size={24} />
                   ระบบหมูขุน (ขายหมู)
+                </button>
+                <button 
+                  onClick={() => { setActiveTab('expenses'); setIsSidebarOpen(false); setSelectedSowId(null); }}
+                  className={cn("w-full flex items-center gap-3 px-6 py-4 text-left font-medium transition-colors", activeTab === 'expenses' ? "bg-pink-50 text-pink-700 border-r-4 border-pink-600" : "text-gray-700 hover:bg-gray-50")}
+                >
+                  <Wallet size={24} />
+                  ระบบรายจ่าย
+                </button>
+                <button 
+                  onClick={() => { setActiveTab('report'); setIsSidebarOpen(false); setSelectedSowId(null); }}
+                  className={cn("w-full flex items-center gap-3 px-6 py-4 text-left font-medium transition-colors", activeTab === 'report' ? "bg-pink-50 text-pink-700 border-r-4 border-pink-600" : "text-gray-700 hover:bg-gray-50")}
+                >
+                  <TrendingUp size={24} />
+                  รายงานผลประกอบการ
                 </button>
               </div>
             </div>
@@ -169,7 +189,7 @@ export default function App() {
         </main>
 
         {/* Bottom Navigation */}
-        {!selectedSowId && activeTab !== 'sales' && (
+        {!selectedSowId && ['dashboard', 'list', 'calendar', 'add'].includes(activeTab) && (
           <nav className="w-full bg-white border-t border-gray-200 flex justify-around p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-20 shrink-0">
             <button 
               onClick={() => setActiveTab('dashboard')}
