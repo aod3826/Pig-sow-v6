@@ -150,7 +150,7 @@ export function useSows(isAuthReady: boolean) {
         breed,
         birthDate: birthDate || null,
         entryDate,
-        status: 'IDLE',
+        status: 'GILT',
         parity: 0,
         createdAt: new Date().toISOString()
       });
@@ -182,8 +182,12 @@ export function useSows(isAuthReady: boolean) {
     // State Machine Logic & Parity Update
     switch (type) {
       case 'BREED':
-        newStatus = 'BRED';
-        currentCycleStartDate = date;
+        // If already BRED, we are just adding another insemination to the current cycle.
+        // We don't change the status or the cycle start date.
+        if (sow.status !== 'BRED') {
+          newStatus = 'BRED';
+          currentCycleStartDate = date;
+        }
         break;
       case 'CHECK_ESTRUS':
         if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {

@@ -1,23 +1,33 @@
 import { useState } from 'react';
 import { SaleRecord } from '../../types';
-import { Plus, Search, FileText, Trash2, Printer, Mail } from 'lucide-react';
+import { Plus, Search, FileText, Trash2, Printer, Mail, Loader2, ExternalLink } from 'lucide-react';
 import { formatDate } from '../../lib/utils';
 import SaleReceipt from './SaleReceipt';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../firebase';
 
 interface SalesListProps {
   sales: SaleRecord[];
   onAddSale: () => void;
   onDeleteSale: (id: string) => void;
+  onUpdateSale: (id: string, data: Partial<SaleRecord>) => Promise<void>;
 }
 
-export default function SalesList({ sales, onAddSale, onDeleteSale }: SalesListProps) {
+export default function SalesList({ sales, onAddSale, onDeleteSale, onUpdateSale }: SalesListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [printSale, setPrintSale] = useState<SaleRecord | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState<string | null>(null);
 
   const filteredSales = sales.filter(s => 
     s.buyerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.vehicleReg.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => {
+    const dateA = new Date(a.createdAt || a.date).getTime();
+    const dateB = new Date(b.createdAt || b.date).getTime();
+    return dateB - dateA;
+  });
 
   const handlePrint = (sale: SaleRecord) => {
     setPrintSale(sale);
@@ -26,30 +36,84 @@ export default function SalesList({ sales, onAddSale, onDeleteSale }: SalesListP
     }, 100);
   };
 
-  const handleSendEmail = (sale: SaleRecord) => {
+  const handleSendEmail = async (sale: SaleRecord) => {
     if (!sale.buyerEmail) return;
+    
+    setIsGeneratingPdf(sale.id);
+    setPrintSale(sale);
 
-    const subject = `ใบสรุปการขายหมูขุน นิพนธุ์ฟาร์ม - ${formatDate(sale.date)}`;
-    const body = `เรียน คุณ ${sale.buyerName},
+    try {
+      // Wait for the DOM to update and render the receipt
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const receiptElement = document.getElementById(`receipt-${sale.id}`);
+      if (!receiptElement) throw new Error('Receipt element not found');
 
-สรุปรายการขายหมูขุน วันที่ ${formatDate(sale.date)}
-ทะเบียนรถ: ${sale.vehicleReg || '-'}
+      const canvas = await html2canvas(receiptElement, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      const pdfBlob = pdf.output('blob');
+      const fileName = `receipt_${sale.id}.pdf`;
+      
+      try {
+        // Upload to Firebase Storage with timeout
+        const storageRef = ref(storage, `receipts/${fileName}`);
+        
+        // Create a timeout promise (4 seconds)
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('STORAGE_TIMEOUT')), 4000)
+        );
+        
+        // Race the upload against the timeout
+        await Promise.race([
+          uploadBytes(storageRef, pdfBlob),
+          timeoutPromise
+        ]);
+        
+        const downloadUrl = await getDownloadURL(storageRef);
 
-จำนวนหมู: ${sale.totalPigs} ตัว
-น้ำหนักสุทธิรวม: ${sale.totalNetWeight.toFixed(1)} กก.
-น้ำหนักเฉลี่ย: ${sale.avgWeight.toFixed(2)} กก./ตัว
-ราคาขาย: ${sale.pricePerKg} บาท/กก.
+        // Save URL to database
+        await onUpdateSale(sale.id, { receiptUrl: downloadUrl });
 
-ยอดรวม: ${sale.grossTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
-หักค่าใช้จ่าย: ${sale.deductions.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
-ยอดสุทธิ (NET TOTAL): ${sale.netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+        const subject = `ใบสรุปการขายหมูขุน นิพนธุ์ฟาร์ม - ${formatDate(sale.date)}`;
+        const body = `เรียน คุณ ${sale.buyerName},\n\nสรุปรายการขายหมูขุน วันที่ ${formatDate(sale.date)}\nทะเบียนรถ: ${sale.vehicleReg || '-'}\n\nจำนวนหมู: ${sale.totalPigs} ตัว\nน้ำหนักสุทธิรวม: ${sale.totalNetWeight.toFixed(1)} กก.\nน้ำหนักเฉลี่ย: ${sale.avgWeight.toFixed(2)} กก./ตัว\nราคาขาย: ${sale.pricePerKg} บาท/กก.\n\nยอดรวม: ${sale.grossTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nหักค่าใช้จ่าย: ${sale.deductions.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nยอดสุทธิ (NET TOTAL): ${sale.netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\nสถานะการชำระเงิน: ${sale.paymentStatus === 'PAID' ? 'ชำระเงินแล้ว' : 'ค้างชำระ'}\n\nสามารถดาวน์โหลดหรือดูใบเสร็จรูปแบบ PDF ได้ที่ลิงก์นี้:\n${downloadUrl}\n\nขอขอบคุณที่ใช้บริการ\nนิพนธุ์ฟาร์ม`;
 
-สถานะการชำระเงิน: ${sale.paymentStatus === 'PAID' ? 'ชำระเงินแล้ว' : 'ค้างชำระ'}
+        // Open email client with link
+        const mailtoLink = `mailto:${sale.buyerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const a = document.createElement('a');
+        a.href = mailtoLink;
+        a.click();
+        
+      } catch (uploadError: any) {
+        console.error('Upload Error:', uploadError);
+        
+        // Fallback to local download
+        pdf.save(`ใบชั่งน้ำหนัก_${sale.buyerName}_${sale.date}.pdf`);
+        
+        const subject = `ใบสรุปการขายหมูขุน นิพนธุ์ฟาร์ม - ${formatDate(sale.date)}`;
+        const body = `เรียน คุณ ${sale.buyerName},\n\nสรุปรายการขายหมูขุน วันที่ ${formatDate(sale.date)}\nทะเบียนรถ: ${sale.vehicleReg || '-'}\n\nจำนวนหมู: ${sale.totalPigs} ตัว\nน้ำหนักสุทธิรวม: ${sale.totalNetWeight.toFixed(1)} กก.\nน้ำหนักเฉลี่ย: ${sale.avgWeight.toFixed(2)} กก./ตัว\nราคาขาย: ${sale.pricePerKg} บาท/กก.\n\nยอดรวม: ${sale.grossTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nหักค่าใช้จ่าย: ${sale.deductions.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nยอดสุทธิ (NET TOTAL): ${sale.netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\nสถานะการชำระเงิน: ${sale.paymentStatus === 'PAID' ? 'ชำระเงินแล้ว' : 'ค้างชำระ'}\n\nขอขอบคุณที่ใช้บริการ\nนิพนธุ์ฟาร์ม`;
+        const mailtoLink = `mailto:${sale.buyerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        
+        const a = document.createElement('a');
+        a.href = mailtoLink;
+        a.click();
 
-ขอขอบคุณที่ใช้บริการ
-นิพนธุ์ฟาร์ม`;
-
-    window.location.href = `mailto:${sale.buyerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        if (uploadError.message === 'STORAGE_TIMEOUT' || uploadError.code?.includes('storage/')) {
+          alert('ไม่สามารถอัปโหลดไฟล์ PDF ขึ้นระบบได้ (อาจยังไม่ได้เปิดใช้งาน Firebase Storage)\n\nระบบได้ทำการดาวน์โหลดไฟล์ PDF ลงเครื่องให้แล้ว กรุณาแนบไฟล์นี้ด้วยตัวเองตอนส่งอีเมลครับ');
+        }
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('เกิดข้อผิดพลาดในการสร้างไฟล์ PDF');
+    } finally {
+      setIsGeneratingPdf(null);
+    }
   };
 
   return (
@@ -60,7 +124,7 @@ export default function SalesList({ sales, onAddSale, onDeleteSale }: SalesListP
           <h1 className="text-2xl font-bold text-gray-900">ประวัติการขายหมูขุน</h1>
           <button 
             onClick={onAddSale}
-            className="bg-pink-600 text-white p-2 rounded-xl hover:bg-pink-700 transition-colors shadow-sm"
+            className="bg-emerald-600 text-white p-2 rounded-2xl hover:bg-emerald-700 transition-colors shadow-sm"
           >
             <Plus className="w-6 h-6" />
           </button>
@@ -71,7 +135,7 @@ export default function SalesList({ sales, onAddSale, onDeleteSale }: SalesListP
           <input 
             type="text" 
             placeholder="ค้นหาชื่อผู้ซื้อ หรือ ทะเบียนรถ..." 
-            className="w-full pl-12 pr-4 py-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-base"
+            className="w-full pl-12 pr-4 py-3 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-base"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -102,13 +166,25 @@ export default function SalesList({ sales, onAddSale, onDeleteSale }: SalesListP
                     <p className="text-sm text-gray-500">{formatDate(sale.date)} • ทะเบียน: {sale.vehicleReg || '-'}</p>
                   </div>
                   <div className="flex items-center">
+                    {sale.receiptUrl && (
+                      <a 
+                        href={sale.receiptUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        title="ดูใบเสร็จ PDF"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </a>
+                    )}
                     {sale.buyerEmail && (
                       <button 
                         onClick={() => handleSendEmail(sale)}
-                        className="p-2 text-gray-400 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-colors"
-                        title="ส่งอีเมล"
+                        disabled={isGeneratingPdf === sale.id}
+                        className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                        title={sale.receiptUrl ? "ส่งอีเมลอีกครั้ง" : "สร้างลิงก์และส่งอีเมล"}
                       >
-                        <Mail className="w-5 h-5" />
+                        {isGeneratingPdf === sale.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
                       </button>
                     )}
                     <button 
@@ -131,7 +207,7 @@ export default function SalesList({ sales, onAddSale, onDeleteSale }: SalesListP
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2 mb-4 bg-slate-50 p-3 rounded-xl">
+                <div className="grid grid-cols-3 gap-2 mb-4 bg-slate-50 p-3 rounded-2xl">
                   <div className="text-center">
                     <p className="text-xs text-gray-500 mb-1">จำนวน</p>
                     <p className="font-bold text-gray-900">{sale.totalPigs} <span className="text-xs font-normal">ตัว</span></p>
@@ -164,8 +240,10 @@ export default function SalesList({ sales, onAddSale, onDeleteSale }: SalesListP
         )}
       </div>
 
-      {/* Hidden Print Area */}
-      {printSale && <SaleReceipt sale={printSale} />}
+      {/* Hidden Print/PDF Area */}
+      <div className="absolute top-[-9999px] left-[-9999px] w-[800px] print:static print:w-full print:block">
+        {printSale && <SaleReceipt sale={printSale} />}
+      </div>
     </div>
   );
 }

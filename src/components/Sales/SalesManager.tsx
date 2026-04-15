@@ -8,11 +8,11 @@ interface SalesManagerProps {
 }
 
 export default function SalesManager({ isAuthReady }: SalesManagerProps) {
-  const { sales, addSale, deleteSale, loading } = useSales(isAuthReady);
+  const { sales, addSale, deleteSale, updateSale, loading } = useSales(isAuthReady);
   const [isAdding, setIsAdding] = useState(false);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div></div>;
+    return <div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
   }
 
   if (isAdding) {
@@ -33,6 +33,7 @@ export default function SalesManager({ isAuthReady }: SalesManagerProps) {
       sales={sales} 
       onAddSale={() => setIsAdding(true)} 
       onDeleteSale={deleteSale} 
+      onUpdateSale={updateSale}
     />
   );
 }

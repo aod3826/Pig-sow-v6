@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SaleRecord, WeighingRecord } from '../../types';
-import { ArrowLeft, Plus, Trash2, Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, List, LayoutGrid } from 'lucide-react';
 import { format } from 'date-fns';
 import SignaturePad from './SignaturePad';
 
@@ -24,6 +24,9 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
   const [signature, setSignature] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   
+  const [activeTab, setActiveTab] = useState<'INFO' | 'WEIGHING' | 'PAYMENT'>('INFO');
+  const [viewMode, setViewMode] = useState<'CARD' | 'TABLE'>('CARD');
+
   const [weighings, setWeighings] = useState<Partial<WeighingRecord>[]>([
     { id: crypto.randomUUID(), grossWeight: undefined, tareWeight: undefined }
   ]);
@@ -125,28 +128,47 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 relative">
+    <div className="flex flex-col h-full bg-app-bg relative">
       {/* Header */}
-      <div className="bg-white px-4 py-4 border-b flex items-center justify-between sticky top-0 z-20">
+      <div className="bg-app-card px-4 py-4 border-b flex items-center justify-between sticky top-0 z-30">
         <button onClick={onCancel} className="p-2 -ml-2 rounded-full hover:bg-gray-100 flex items-center gap-1">
           <ArrowLeft className="w-7 h-7 text-gray-700" />
-          <span className="font-medium text-gray-700 text-base">กลับ</span>
+          <span className="font-medium text-gray-700 text-base">ยกเลิก</span>
         </button>
-        <h2 className="text-xl font-bold text-gray-900">ใบชั่งน้ำหนัก</h2>
+        <h2 className="text-xl font-bold text-gray-900">บันทึกการขาย</h2>
         <div className="w-10"></div> {/* Spacer */}
       </div>
 
-      <div className="p-4 space-y-6 pb-32">
+      {/* Stepper Navigation */}
+      <div className="bg-app-card px-4 py-3 border-b flex justify-between items-center sticky top-[61px] z-20 shadow-sm">
+        <button onClick={() => setActiveTab('INFO')} className={`flex flex-col items-center gap-1 w-1/3 transition-colors ${activeTab === 'INFO' ? 'text-emerald-600' : 'text-gray-400'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors ${activeTab === 'INFO' ? 'bg-emerald-100' : 'bg-gray-100'}`}>1</div>
+          <span className="text-xs font-bold">ข้อมูล</span>
+        </button>
+        <div className="h-px bg-gray-200 flex-1 mx-1"></div>
+        <button onClick={() => setActiveTab('WEIGHING')} className={`flex flex-col items-center gap-1 w-1/3 transition-colors ${activeTab === 'WEIGHING' ? 'text-emerald-600' : 'text-gray-400'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors ${activeTab === 'WEIGHING' ? 'bg-emerald-100' : 'bg-gray-100'}`}>2</div>
+          <span className="text-xs font-bold">ชั่งน้ำหนัก</span>
+        </button>
+        <div className="h-px bg-gray-200 flex-1 mx-1"></div>
+        <button onClick={() => setActiveTab('PAYMENT')} className={`flex flex-col items-center gap-1 w-1/3 transition-colors ${activeTab === 'PAYMENT' ? 'text-emerald-600' : 'text-gray-400'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors ${activeTab === 'PAYMENT' ? 'bg-emerald-100' : 'bg-gray-100'}`}>3</div>
+          <span className="text-xs font-bold">สรุปยอด</span>
+        </button>
+      </div>
+
+      <div className="p-4 pb-32">
         
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          
-          {/* Basic Info */}
+        {/* Tab 1: INFO */}
+        <div className={activeTab === 'INFO' ? 'block' : 'hidden'}>
+          <div className="bg-app-card p-6 rounded-3xl shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">ข้อมูลทั่วไป</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <div className="col-span-2 md:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">วันที่ขาย</label>
               <input 
                 type="date" 
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
                 value={date}
                 onChange={e => setDate(e.target.value)}
               />
@@ -156,7 +178,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               <input 
                 type="text" 
                 list="buyer-names"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
                 value={buyerName}
                 onChange={e => handleBuyerChange(e.target.value)}
                 placeholder="ระบุชื่อผู้ซื้อ"
@@ -171,7 +193,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               <label className="block text-sm font-medium text-gray-700 mb-1">อีเมลผู้ซื้อ (Gmail)</label>
               <input 
                 type="email" 
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
                 value={buyerEmail}
                 onChange={e => setBuyerEmail(e.target.value)}
                 placeholder="example@gmail.com"
@@ -181,7 +203,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               <label className="block text-sm font-medium text-gray-700 mb-1">ผู้ขาย (Seller)</label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
                 value={sellerName}
                 onChange={e => setSellerName(e.target.value)}
                 placeholder="นิพนธุ์ฟาร์ม"
@@ -191,7 +213,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               <label className="block text-sm font-medium text-gray-700 mb-1">ทะเบียนรถ</label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg"
                 value={vehicleReg}
                 onChange={e => setVehicleReg(e.target.value)}
                 placeholder="ระบุทะเบียนรถ"
@@ -200,7 +222,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">ประเภท</label>
               <select 
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg appearance-none bg-white"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg appearance-none bg-app-card"
                 value={saleType}
                 onChange={e => setSaleType(e.target.value)}
               >
@@ -210,91 +232,167 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               </select>
             </div>
           </div>
+          </div>
+        </div>
 
-          {/* Weighing List */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
+        {/* Tab 2: WEIGHING */}
+        <div className={activeTab === 'WEIGHING' ? 'block' : 'hidden'}>
+          <div className="bg-app-card p-6 rounded-3xl shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-900">รายการชั่งน้ำหนัก</h3>
-              <button 
-                onClick={handleAddRow}
-                className="flex items-center gap-1 text-pink-600 font-medium hover:bg-pink-50 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <Plus className="w-5 h-5" /> เพิ่มรายการ
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setViewMode(viewMode === 'CARD' ? 'TABLE' : 'CARD')} 
+                  className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors"
+                  title="เปลี่ยนมุมมอง"
+                >
+                  {viewMode === 'CARD' ? <List className="w-5 h-5" /> : <LayoutGrid className="w-5 h-5" />}
+                </button>
+                <button 
+                  onClick={handleAddRow}
+                  className="flex items-center gap-1 bg-emerald-100 text-emerald-700 font-bold hover:bg-emerald-200 px-4 py-2 rounded-full transition-colors shadow-sm"
+                >
+                  <Plus className="w-5 h-5" /> เพิ่ม
+                </button>
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-gray-200 text-gray-600 text-sm">
-                    <th className="pb-3 font-medium w-16 text-center">อันดับที่</th>
-                    <th className="pb-3 font-medium px-2 text-right">รวม (กก.)</th>
-                    <th className="pb-3 font-medium px-2 text-right">- น้ำหนักกรง</th>
-                    <th className="pb-3 font-medium px-2 text-right text-pink-600">สุทธิ (กก.)</th>
-                    <th className="pb-3 font-medium w-12"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {processedWeighings.map((w, index) => {
-                    const displayIndex = weighings.length - index;
-                    return (
-                    <tr key={w.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-3 text-center font-medium text-gray-500">{displayIndex}</td>
-                      <td className="py-3 px-2">
+            {viewMode === 'TABLE' ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200 text-gray-600 text-sm">
+                      <th className="pb-3 font-medium w-12 text-center">ที่</th>
+                      <th className="pb-3 font-medium px-1 text-right">รวม(กก.)</th>
+                      <th className="pb-3 font-medium px-1 text-right">-กรง</th>
+                      <th className="pb-3 font-medium px-1 text-right text-emerald-600">สุทธิ</th>
+                      <th className="pb-3 font-medium w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {processedWeighings.map((w, index) => {
+                      const displayIndex = weighings.length - index;
+                      return (
+                      <tr key={w.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-3 text-center font-medium text-gray-500">{displayIndex}</td>
+                        <td className="py-3 px-1">
+                          <input 
+                            type="number" min="0" step="0.1"
+                            autoFocus={index === 0 && weighings.length > 1}
+                            className="w-full text-right px-2 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none font-bold"
+                            value={w.grossWeight || ''}
+                            onChange={e => handleChangeRow(w.id!, 'grossWeight', e.target.value)}
+                            placeholder="0.0"
+                          />
+                        </td>
+                        <td className="py-3 px-1">
+                          <input 
+                            type="number" min="0" step="0.1"
+                            className="w-full text-right px-2 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none font-bold"
+                            value={w.tareWeight || ''}
+                            onChange={e => handleChangeRow(w.id!, 'tareWeight', e.target.value)}
+                            placeholder="0.0"
+                          />
+                        </td>
+                        <td className="py-3 px-1 text-right font-bold text-emerald-600 text-lg">
+                          {w.netWeight.toFixed(1)}
+                        </td>
+                        <td className="py-3 text-right">
+                          <button 
+                            onClick={() => handleRemoveRow(w.id!)}
+                            disabled={weighings.length === 1}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full disabled:opacity-50"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    )})}
+                  </tbody>
+                  <tfoot className="bg-gray-50 font-bold border-t-2 border-gray-200">
+                    <tr>
+                      <td className="py-4 text-center text-gray-700">รวม</td>
+                      <td colSpan={2}></td>
+                      <td className="py-4 px-1 text-right text-xl text-emerald-600">{totalNetWeight.toFixed(1)}</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <div className="space-y-4">
+              {processedWeighings.map((w, index) => {
+                const displayIndex = weighings.length - index;
+                return (
+                  <div key={w.id} className="bg-app-bg p-5 rounded-3xl border border-gray-200 shadow-sm relative">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="font-bold text-gray-700 bg-app-card px-4 py-1.5 rounded-full text-sm border border-gray-200 shadow-sm">
+                        ชั่งครั้งที่ {displayIndex}
+                      </span>
+                      <button 
+                        onClick={() => handleRemoveRow(w.id!)}
+                        disabled={weighings.length === 1}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full disabled:opacity-50 transition-colors"
+                      >
+                        <Trash2 className="w-6 h-6" />
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1 text-center">น้ำหนักรวม (กก.)</label>
                         <input 
                           type="number" min="0" step="0.1"
                           autoFocus={index === 0 && weighings.length > 1}
-                          className="w-full text-right px-2 py-2 rounded-lg border border-gray-200 focus:border-pink-500 outline-none"
+                          className="w-full text-center px-2 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-2xl font-bold bg-app-card shadow-inner"
                           value={w.grossWeight || ''}
                           onChange={e => handleChangeRow(w.id!, 'grossWeight', e.target.value)}
                           placeholder="0.0"
                         />
-                      </td>
-                      <td className="py-3 px-2">
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1 text-center">หักกรง (กก.)</label>
                         <input 
                           type="number" min="0" step="0.1"
-                          className="w-full text-right px-2 py-2 rounded-lg border border-gray-200 focus:border-pink-500 outline-none"
+                          className="w-full text-center px-2 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-2xl font-bold bg-app-card shadow-inner"
                           value={w.tareWeight || ''}
                           onChange={e => handleChangeRow(w.id!, 'tareWeight', e.target.value)}
                           placeholder="0.0"
                         />
-                      </td>
-                      <td className="py-3 px-2 text-right font-bold text-pink-600 text-lg">
-                        {w.netWeight.toFixed(1)}
-                      </td>
-                      <td className="py-3 text-right">
-                        <button 
-                          onClick={() => handleRemoveRow(w.id!)}
-                          disabled={weighings.length === 1}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  )})}
-                </tbody>
-                <tfoot className="bg-gray-50 font-bold border-t-2 border-gray-200">
-                  <tr>
-                    <td className="py-4 text-center text-gray-700">นน.รวม</td>
-                    <td colSpan={2}></td>
-                    <td className="py-4 px-2 text-right text-xl text-pink-600">{totalNetWeight.toFixed(1)}</td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-4 mt-4 border-t border-gray-200">
+                      <span className="text-base font-bold text-gray-600">น้ำหนักสุทธิ</span>
+                      <span className="text-3xl font-black text-emerald-600">{w.netWeight.toFixed(1)} <span className="text-lg font-bold">กก.</span></span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+            )}
+            
+            {/* Total Net Weight Summary at the bottom of the list */}
+            {viewMode === 'CARD' && (
+              <div className="mt-6 bg-emerald-50 p-5 rounded-3xl border border-emerald-100 flex justify-between items-center shadow-sm">
+                 <span className="font-bold text-emerald-800 text-lg">น้ำหนักสุทธิรวม</span>
+                 <span className="text-3xl font-black text-emerald-600">{totalNetWeight.toFixed(1)} กก.</span>
+              </div>
+            )}
           </div>
+        </div>
 
+        {/* Tab 3: PAYMENT */}
+        <div className={activeTab === 'PAYMENT' ? 'block space-y-6' : 'hidden'}>
           {/* Summary */}
-          <div className="mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+          <div className="bg-app-card p-6 rounded-3xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">สรุปรายการ (Summary)</h3>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-sm text-gray-500 mb-1">หมูทั้งหมดละ</p>
+                <p className="text-sm text-gray-500 mb-1">จำนวนหมู (ตัว)</p>
                 <input 
                   type="number" min="1"
-                  className="w-24 text-center mx-auto px-2 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none text-xl font-bold"
+                  className="w-24 text-center mx-auto px-2 py-2 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-xl font-bold"
                   value={totalPigsInput}
                   onChange={e => setTotalPigsInput(e.target.value ? Number(e.target.value) : '')}
                   placeholder="0"
@@ -318,7 +416,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                 <span className="text-gray-600 font-medium">ราคาขาย:</span>
                 <input 
                   type="number" min="0" step="0.5"
-                  className="w-32 text-right px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none text-lg font-bold"
+                  className="w-32 text-right px-4 py-2 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-lg font-bold"
                   value={pricePerKg}
                   onChange={e => setPricePerKg(e.target.value ? Number(e.target.value) : '')}
                   placeholder="0.00"
@@ -332,13 +430,13 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                 <span className="text-gray-600 font-medium">หักค่าใช้จ่าย (ถ้ามี)</span>
                 <input 
                   type="number" min="0"
-                  className="w-32 text-right px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 outline-none text-lg text-red-600 font-bold"
+                  className="w-32 text-right px-4 py-2 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-lg text-red-600 font-bold"
                   value={deductions}
                   onChange={e => setDeductions(e.target.value ? Number(e.target.value) : '')}
                   placeholder="0.00"
                 />
               </div>
-              <div className="pt-4 border-t border-slate-200 flex flex-col items-center bg-green-500 text-white rounded-xl p-4">
+              <div className="pt-4 border-t border-slate-200 flex flex-col items-center bg-green-500 text-white rounded-2xl p-4">
                 <span className="text-sm font-medium mb-1">รวมเงินทั้งสิ้น (NET TOTAL)</span>
                 <span className="text-4xl font-black">{netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-lg font-normal">บาท</span></span>
               </div>
@@ -351,7 +449,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
             <div className="flex gap-4">
               <button
                 onClick={() => { setPaymentStatus('PAID'); setSignature(null); }}
-                className={`flex-1 py-4 rounded-xl font-bold flex items-center justify-center gap-2 border-2 transition-all ${
+                className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 border-2 transition-all ${
                   paymentStatus === 'PAID' 
                     ? 'border-green-500 bg-green-50 text-green-700' 
                     : 'border-gray-200 text-gray-500 hover:border-green-200 hover:bg-green-50/50'
@@ -362,7 +460,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               </button>
               <button
                 onClick={() => { setPaymentStatus('UNPAID'); if (!signature) setShowSignaturePad(true); }}
-                className={`flex-1 py-4 rounded-xl font-bold flex items-center justify-center gap-2 border-2 transition-all ${
+                className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 border-2 transition-all ${
                   paymentStatus === 'UNPAID' 
                     ? 'border-orange-500 bg-orange-50 text-orange-700' 
                     : 'border-gray-200 text-gray-500 hover:border-orange-200 hover:bg-orange-50/50'
@@ -374,7 +472,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
             </div>
 
             {paymentStatus === 'UNPAID' && (
-              <div className="mt-6 p-4 border-2 border-dashed border-orange-200 rounded-xl bg-orange-50/30 flex flex-col items-center justify-center">
+              <div className="mt-6 p-4 border-2 border-dashed border-orange-200 rounded-2xl bg-orange-50/30 flex flex-col items-center justify-center">
                 {signature ? (
                   <div className="w-full flex flex-col items-center">
                     <p className="text-sm text-gray-500 mb-2">ลายเซ็นผู้ซื้อ:</p>
@@ -389,7 +487,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                 ) : (
                   <button 
                     onClick={() => setShowSignaturePad(true)}
-                    className="py-3 px-6 bg-orange-100 text-orange-700 font-bold rounded-xl hover:bg-orange-200 transition-colors"
+                    className="py-3 px-6 bg-orange-100 text-orange-700 font-bold rounded-2xl hover:bg-orange-200 transition-colors"
                   >
                     คลิกเพื่อเซ็นชื่อผู้ค้างชำระ
                   </button>
@@ -397,33 +495,66 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               </div>
             )}
           </div>
-
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex gap-3 z-30">
-        <button 
-          onClick={handleSubmit}
-          disabled={isSaving}
-          className="w-full bg-pink-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-pink-700 transition-colors disabled:opacity-70"
-        >
-          <Save className="w-6 h-6" /> {isSaving ? 'กำลังบันทึก...' : 'บันทึกการขาย'}
-        </button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex gap-3 z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        {activeTab === 'INFO' && (
+          <button 
+            onClick={() => setActiveTab('WEIGHING')} 
+            className="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors"
+          >
+            ต่อไป: ชั่งน้ำหนัก <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
+        {activeTab === 'WEIGHING' && (
+          <>
+            <button 
+              onClick={() => setActiveTab('INFO')} 
+              className="w-1/3 bg-gray-100 text-gray-700 font-bold py-4 rounded-2xl flex items-center justify-center gap-1 hover:bg-gray-200 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" /> กลับ
+            </button>
+            <button 
+              onClick={() => setActiveTab('PAYMENT')} 
+              className="w-2/3 bg-emerald-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors"
+            >
+              ต่อไป: สรุปยอด <ChevronRight className="w-6 h-6" />
+            </button>
+          </>
+        )}
+        {activeTab === 'PAYMENT' && (
+          <>
+            <button 
+              onClick={() => setActiveTab('WEIGHING')} 
+              className="w-1/3 bg-gray-100 text-gray-700 font-bold py-4 rounded-2xl flex items-center justify-center gap-1 hover:bg-gray-200 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" /> กลับ
+            </button>
+            <button 
+              onClick={handleSubmit}
+              disabled={isSaving}
+              className="w-2/3 bg-emerald-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors disabled:opacity-70"
+            >
+              <Save className="w-6 h-6" /> {isSaving ? 'กำลังบันทึก...' : 'บันทึกการขาย'}
+            </button>
+          </>
+        )}
       </div>
 
-      {showSignaturePad && (
-        <SignaturePad 
-          onSave={(sig) => {
-            setSignature(sig);
-            setShowSignaturePad(false);
-          }}
-          onCancel={() => {
-            setShowSignaturePad(false);
-            if (!signature) setPaymentStatus('PAID'); // Revert if cancelled and no signature
-          }}
-        />
-      )}
+        {showSignaturePad && (
+          <SignaturePad 
+            onSave={(sig) => {
+              setSignature(sig);
+              setShowSignaturePad(false);
+            }}
+            onCancel={() => {
+              setShowSignaturePad(false);
+              if (!signature) setPaymentStatus('PAID'); // Revert if cancelled and no signature
+            }}
+          />
+        )}
     </div>
   );
 }

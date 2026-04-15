@@ -49,5 +49,14 @@ export function useSales(isAuthReady: boolean) {
     }
   };
 
-  return { sales, addSale, deleteSale, loading };
+  const updateSale = async (id: string, data: Partial<SaleRecord>) => {
+    try {
+      await setDoc(doc(db, 'sales', id), data, { merge: true });
+    } catch (error) {
+      console.error("Error updating sale:", error);
+      throw error;
+    }
+  };
+
+  return { sales, addSale, deleteSale, updateSale, loading };
 }

@@ -62,7 +62,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
           icon: '/icon.svg',
           badge: '/icon.svg',
           vibrate: [200, 100, 200]
-        });
+        } as any);
       } catch (e) {
         new Notification(title, { body, icon: '/icon.svg' });
       }
@@ -126,7 +126,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
         <h2 className="text-xl font-bold text-gray-800">แดชบอร์ด</h2>
         <button 
           onClick={() => setShowLegend(true)}
-          className="p-2 bg-white rounded-full shadow-sm border border-gray-200 text-gray-500 hover:text-pink-600 transition-colors"
+          className="p-2 bg-app-card rounded-full shadow-sm border border-gray-200 text-gray-500 hover:text-emerald-600 transition-colors"
         >
           <HelpCircle className="w-6 h-6" />
         </button>
@@ -134,7 +134,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
 
       {/* Notification Banner */}
       {notifPermission === 'default' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div className="bg-blue-50 border border-blue-200 rounded-3xl p-5 flex items-center justify-between shadow-md">
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-2 rounded-full text-blue-600 shrink-0">
               <BellRing className="w-6 h-6" />
@@ -146,7 +146,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
           </div>
           <button 
             onClick={requestNotificationPermission}
-            className="ml-2 px-3 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm"
+            className="ml-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-full hover:bg-blue-700 transition-colors whitespace-nowrap shadow-sm"
           >
             เปิดใช้งาน
           </button>
@@ -161,7 +161,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
         </h2>
         
         {urgentTasks.length === 0 ? (
-          <div className="bg-green-50 text-green-700 p-6 rounded-2xl flex flex-col items-center justify-center border border-green-100 shadow-sm">
+          <div className="bg-green-50 text-green-700 p-6 rounded-3xl flex flex-col items-center justify-center border border-green-100 shadow-md">
             <CheckCircle2 className="w-12 h-12 mb-2 text-green-500" />
             <span className="font-bold text-lg">เยี่ยมมาก! 🎉</span>
             <span className="text-sm mt-1">ไม่มีงานค้างหรือถึงกำหนดวันนี้</span>
@@ -173,7 +173,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
                 key={task.id} 
                 onClick={() => onSelectSow(task.sowId)}
                 className={cn(
-                  "border-l-4 p-4 rounded-r-2xl shadow-sm cursor-pointer transition-colors flex items-center justify-between",
+                  "border-l-4 p-4 rounded-r-3xl shadow-md cursor-pointer transition-colors flex items-center justify-between",
                   task.status === 'OVERDUE' ? "bg-red-50 border-red-500 hover:bg-red-100" : "bg-yellow-50 border-yellow-500 hover:bg-yellow-100"
                 )}
               >
@@ -184,7 +184,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
                   )}>
                     {task.type === 'FARROW' ? '🐷' :
                      task.type === 'WEAN' ? '🍼' :
-                     task.type === 'PREG_CHECK' ? '🔍' : '💉'}
+                     (task.type === 'VISUAL_PREG_CHECK' || task.type === 'CHECK_ESTRUS') ? '🔍' : '💉'}
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -215,14 +215,14 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
         <h2 className="text-lg font-bold text-gray-800 mb-3">ภาพรวมสถานะ</h2>
         <div className="grid grid-cols-2 gap-3">
           {Object.entries(STATUS_LABELS).map(([status, label]) => (
-            <div key={status} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+            <div key={status} className="bg-app-card p-4 rounded-3xl shadow-md border border-gray-100 flex justify-between items-center">
               <span className="text-sm text-gray-600 font-medium">{label}</span>
-              <span className="text-lg font-bold text-pink-600">{statusCounts[status] || 0}</span>
+              <span className="text-lg font-bold text-emerald-600">{statusCounts[status] || 0}</span>
             </div>
           ))}
-          <div className="bg-pink-50 p-3 rounded-xl shadow-sm border border-pink-100 flex justify-between items-center col-span-2">
-            <span className="text-sm text-pink-800 font-bold">รวมทั้งหมด</span>
-            <span className="text-xl font-black text-pink-600">{sows.length}</span>
+          <div className="bg-emerald-50 p-4 rounded-3xl shadow-md border border-emerald-100 flex justify-between items-center col-span-2">
+            <span className="text-sm text-emerald-800 font-bold">รวมทั้งหมด</span>
+            <span className="text-xl font-black text-emerald-600">{sows.length}</span>
           </div>
         </div>
       </section>
@@ -234,14 +234,14 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
           สถิติประสิทธิภาพฟาร์ม
         </h2>
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-blue-100 flex flex-col items-center justify-center text-center">
+          <div className="bg-app-card p-5 rounded-3xl shadow-md border border-blue-100 flex flex-col items-center justify-center text-center">
             <span className="text-sm text-gray-500 mb-1">ลูกเกิดรอดเฉลี่ย</span>
             <div className="flex items-baseline">
               <span className="text-2xl font-black text-blue-600">{avgLiveBorn}</span>
               <span className="text-xs text-gray-400 ml-1">ตัว/ครอก</span>
             </div>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-green-100 flex flex-col items-center justify-center text-center">
+          <div className="bg-app-card p-5 rounded-3xl shadow-md border border-green-100 flex flex-col items-center justify-center text-center">
             <span className="text-sm text-gray-500 mb-1">ลูกหย่านมเฉลี่ย</span>
             <div className="flex items-baseline">
               <span className="text-2xl font-black text-green-600">{avgWeaned}</span>
@@ -254,10 +254,10 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
       {/* Legend Modal */}
       {showLegend && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 animate-in zoom-in-95 duration-200 shadow-2xl">
+          <div className="bg-app-card w-full max-w-md rounded-3xl p-6 animate-in zoom-in-95 duration-200 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b pb-3">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <HelpCircle className="w-6 h-6 text-pink-600" /> คู่มือการใช้งาน
+                <HelpCircle className="w-6 h-6 text-emerald-600" /> คู่มือการใช้งาน
               </h3>
               <button onClick={() => setShowLegend(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-500">
                 <X className="w-6 h-6" />
@@ -286,9 +286,9 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
                 </div>
               </div>
 
-              <div className="bg-pink-50 p-4 rounded-xl border border-pink-100">
-                <h4 className="font-bold text-pink-800 mb-2">วงจรการผลิต (114 วัน)</h4>
-                <ol className="list-decimal list-inside space-y-1 text-sm text-pink-700">
+              <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                <h4 className="font-bold text-emerald-800 mb-2">วงจรการผลิต (114 วัน)</h4>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-emerald-700">
                   <li><strong>ผสมพันธุ์</strong> (เริ่มนับวันที่ 0)</li>
                   <li><strong>ตรวจกลับสัด</strong> (วันที่ 28 หลังผสม)</li>
                   <li><strong>ย้ายเข้าคอกคลอด</strong> (วันที่ 108 หลังผสม)</li>
@@ -301,7 +301,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
             
             <button 
               onClick={() => setShowLegend(false)}
-              className="w-full mt-6 bg-gray-100 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors"
+              className="w-full mt-6 bg-gray-100 text-gray-800 font-bold py-3 rounded-full hover:bg-gray-200 transition-colors"
             >
               ปิดหน้าต่าง
             </button>

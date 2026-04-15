@@ -37,7 +37,7 @@ export default function ExpenseList({ expenses, onAdd, onDelete }: ExpenseListPr
     (expense.note && expense.note.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + (exp.totalAmount ?? (exp as any).amount ?? 0), 0);
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -57,8 +57,8 @@ export default function ExpenseList({ expenses, onAdd, onDelete }: ExpenseListPr
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
             type="text" 
-            placeholder="ค้นหารายจ่าย..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none"
+            placeholder="ค้นหารายจ่าย, ร้านค้า..." 
+            className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-red-500 outline-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -80,36 +80,58 @@ export default function ExpenseList({ expenses, onAdd, onDelete }: ExpenseListPr
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredExpenses.map(expense => (
-              <div key={expense.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${CATEGORY_COLORS[expense.category]}`}>
-                      {CATEGORY_LABELS[expense.category]}
-                    </span>
-                    <span className="text-sm text-gray-500">{formatDate(expense.date)}</span>
+            {filteredExpenses.map(expense => {
+              const amount = expense.totalAmount ?? (expense as any).amount ?? 0;
+              return (
+              <div key={expense.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${CATEGORY_COLORS[expense.category]}`}>
+                        {CATEGORY_LABELS[expense.category]}
+                      </span>
+                      <span className="text-sm text-gray-500">{formatDate(expense.date)}</span>
+                    </div>
+                    <h3 className="font-bold text-gray-800">{expense.shopName || 'ไม่ระบุร้านค้า'}</h3>
+                    {expense.note && (
+                      <p className="text-sm text-gray-600 mt-1">{expense.note}</p>
+                    )}
                   </div>
-                  {expense.note && (
-                    <p className="text-sm text-gray-600 mt-1">{expense.note}</p>
-                  )}
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="font-bold text-red-600 text-lg">
+                      -฿ {amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    </span>
+                    <button 
+                      onClick={() => {
+                        if(window.confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+                          onDelete(expense.id);
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-bold text-red-600">
-                    -฿ {expense.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                  </span>
-                  <button 
-                    onClick={() => {
-                      if(window.confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
-                        onDelete(expense.id);
-                      }
-                    }}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
+                
+                {/* Show items summary if exists */}
+                {expense.items && expense.items.length > 0 && (
+                  <div className="mt-2 text-sm text-gray-500 bg-slate-50 p-2 rounded-lg">
+                    <p className="font-medium text-gray-700 mb-1">รายการสินค้า ({expense.items.length}):</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {expense.items.slice(0, 2).map((item, idx) => (
+                        <li key={idx}>
+                          {item.name} {item.quantity} {item.unit} (฿{item.unitPrice}/{item.unit})
+                        </li>
+                      ))}
+                      {expense.items.length > 2 && (
+                        <li className="text-gray-400 italic">...และอีก {expense.items.length - 2} รายการ</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>

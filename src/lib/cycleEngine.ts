@@ -28,6 +28,7 @@ export const EVENT_LABELS: Record<EventType, string> = {
 };
 
 export const STATUS_LABELS: Record<Sow['status'], string> = {
+  GILT: 'แม่หมูสาว (รอผสม)',
   IDLE: 'รอผสม',
   BRED: 'ผสมแล้ว',
   PREGNANT: 'ตั้งท้อง',
@@ -93,7 +94,7 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
     addTask('WEAN', sow.farrowDate, CYCLE_RULES.WEAN);
   }
 
-  if (sow.status === 'IDLE') {
+  if (sow.status === 'IDLE' || sow.status === 'GILT') {
     const lastEvent = sow.history[sow.history.length - 1];
     if (lastEvent) {
       if (lastEvent.type === 'WEAN') {

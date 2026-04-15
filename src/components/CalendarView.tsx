@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Sow } from '../types';
 import { getUpcomingTasksForSow, EVENT_LABELS } from '../lib/cycleEngine';
 import { cn } from '../lib/utils';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ListTodo } from 'lucide-react';
 import { 
   format, 
   addMonths, 
@@ -27,6 +27,7 @@ interface CalendarViewProps {
 
 export default function CalendarView({ sows, onSelectSow }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
   const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
@@ -62,9 +63,11 @@ export default function CalendarView({ sows, onSelectSow }: CalendarViewProps) {
 
   const weekDays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
+  const selectedDayTasks = allTasks.filter(t => isSameDay(t.date, selectedDate));
+
   return (
-    <div className="p-4 flex flex-col h-full bg-slate-100">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4">
+    <div className="p-4 flex flex-col min-h-full bg-app-bg">
+      <div className="bg-app-card rounded-3xl shadow-md border border-gray-100 overflow-hidden mb-6 shrink-0">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -81,7 +84,7 @@ export default function CalendarView({ sows, onSelectSow }: CalendarViewProps) {
         {/* Days of week */}
         <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50">
           {weekDays.map((day, i) => (
-            <div key={i} className="text-center py-2 text-xs font-semibold text-gray-500">
+            <div key={i} className="text-center py-3 text-xs font-bold text-gray-500">
               {day}
             </div>
           ))}
@@ -93,42 +96,50 @@ export default function CalendarView({ sows, onSelectSow }: CalendarViewProps) {
             const dayTasks = allTasks.filter(task => isSameDay(task.date, day));
             const isCurrentMonth = isSameMonth(day, monthStart);
             const isTodayDate = isToday(day);
+            const isSelected = isSameDay(day, selectedDate);
 
             return (
               <div 
                 key={i} 
+                onClick={() => {
+                  setSelectedDate(day);
+                  if (!isCurrentMonth) {
+                    setCurrentDate(day);
+                  }
+                }}
                 className={cn(
-                  "min-h-[80px] p-1 border-b border-r border-gray-100 relative",
+                  "min-h-[60px] sm:min-h-[80px] p-1 border-b border-r border-gray-100 relative cursor-pointer transition-all",
                   !isCurrentMonth && "bg-gray-50/50 text-gray-400",
-                  isCurrentMonth && "bg-white",
+                  isCurrentMonth && "bg-app-card hover:bg-gray-50",
+                  isSelected && "bg-emerald-50/50",
                   (i + 1) % 7 === 0 && "border-r-0"
                 )}
               >
-                <div className="flex justify-center mb-1">
+                <div className="flex justify-center mb-1 mt-1">
                   <span className={cn(
-                    "text-sm w-7 h-7 flex items-center justify-center rounded-full",
-                    isTodayDate ? "bg-pink-600 text-white font-bold shadow-sm" : "text-gray-700 font-medium"
+                    "text-sm w-8 h-8 flex items-center justify-center rounded-full transition-all",
+                    isSelected ? "bg-emerald-600 text-white font-bold shadow-md scale-110" : 
+                    isTodayDate ? "bg-emerald-100 text-emerald-700 font-bold" : "text-gray-700 font-medium"
                   )}>
                     {format(day, 'd')}
                   </span>
                 </div>
-                <div className="flex flex-col gap-1 overflow-y-auto max-h-[60px] no-scrollbar">
-                  {dayTasks.map((task, idx) => (
+                <div className="flex flex-wrap justify-center gap-1 px-1 mt-1">
+                  {dayTasks.slice(0, 3).map((task, idx) => (
                     <div 
                       key={idx}
-                      onClick={() => onSelectSow(task.sowId)}
                       className={cn(
-                        "text-[10px] leading-tight p-1 rounded cursor-pointer truncate font-medium",
-                        task.type === 'FARROW' ? "bg-purple-100 text-purple-700" :
-                        task.type === 'WEAN' ? "bg-green-100 text-green-700" :
-                        task.type === 'PREG_CHECK' ? "bg-blue-100 text-blue-700" :
-                        "bg-orange-100 text-orange-700"
+                        "w-2 h-2 rounded-full",
+                        task.type === 'FARROW' ? "bg-purple-500" :
+                        task.type === 'WEAN' ? "bg-green-500" :
+                        (task.type === 'VISUAL_PREG_CHECK' || task.type === 'CHECK_ESTRUS') ? "bg-blue-500" :
+                        "bg-orange-500"
                       )}
-                      title={`${task.sowId}: ${EVENT_LABELS[task.type]}`}
-                    >
-                      <span className="font-bold">{task.sowId}</span> {EVENT_LABELS[task.type]}
-                    </div>
+                    />
                   ))}
+                  {dayTasks.length > 3 && (
+                    <div className="w-2 h-2 rounded-full bg-gray-400" />
+                  )}
                 </div>
               </div>
             );
@@ -136,52 +147,60 @@ export default function CalendarView({ sows, onSelectSow }: CalendarViewProps) {
         </div>
       </div>
 
-      {/* Upcoming Tasks List (Agenda View) */}
-      <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-        <CalendarIcon className="w-5 h-5 text-pink-600" />
-        กำหนดการเร็วๆ นี้
-      </h3>
+      {/* Selected Date Tasks */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <ListTodo className="w-5 h-5 text-emerald-600" />
+          {isToday(selectedDate) ? 'กำหนดการวันนี้' : `วันที่ ${format(selectedDate, 'd MMM yyyy', { locale: th })}`}
+        </h3>
+        {selectedDayTasks.length > 0 && (
+          <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">
+            {selectedDayTasks.length} งาน
+          </span>
+        )}
+      </div>
+
       <div className="space-y-3 pb-4">
-        {allTasks
-          .filter(t => t.date >= startOfDay(new Date()))
-          .sort((a, b) => a.date.getTime() - b.date.getTime())
-          .slice(0, 10)
-          .map((task, i) => (
+        {selectedDayTasks.length > 0 ? (
+          selectedDayTasks.map((task, i) => (
             <div 
               key={i}
               onClick={() => onSelectSow(task.sowId)}
-              className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:border-pink-300 transition-colors"
+              className="bg-app-card p-4 rounded-3xl shadow-md border border-gray-100 flex items-center justify-between cursor-pointer hover:border-emerald-300 transition-colors"
             >
               <div className="flex items-center gap-4">
                 <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold",
+                  "w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-sm",
                   task.type === 'FARROW' ? "bg-purple-100 text-purple-700" :
                   task.type === 'WEAN' ? "bg-green-100 text-green-700" :
-                  task.type === 'PREG_CHECK' ? "bg-blue-100 text-blue-700" :
+                  (task.type === 'VISUAL_PREG_CHECK' || task.type === 'CHECK_ESTRUS') ? "bg-blue-100 text-blue-700" :
                   "bg-orange-100 text-orange-700"
                 )}>
                   {task.type === 'FARROW' ? '🐷' :
                    task.type === 'WEAN' ? '🍼' :
-                   task.type === 'PREG_CHECK' ? '🔍' : '💉'}
+                   (task.type === 'VISUAL_PREG_CHECK' || task.type === 'CHECK_ESTRUS') ? '🔍' : '💉'}
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-900 text-lg">แม่หมู {task.sowId}</h4>
-                  <p className="text-gray-500 text-sm">{EVENT_LABELS[task.type]}</p>
+                  <p className="text-gray-500 text-sm font-medium">{EVENT_LABELS[task.type]}</p>
                 </div>
               </div>
               <div className="text-right">
                 <div className="font-bold text-gray-900">
                   {format(task.date, 'd MMM', { locale: th })}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 font-medium">
                   {isToday(task.date) ? 'วันนี้' : format(task.date, 'EEEE', { locale: th })}
                 </div>
               </div>
             </div>
-          ))}
-        {allTasks.filter(t => t.date >= startOfDay(new Date())).length === 0 && (
-          <div className="text-center py-8 text-gray-500 bg-white rounded-xl border border-gray-100">
-            ไม่มีกำหนดการในเร็วๆ นี้
+          ))
+        ) : (
+          <div className="text-center py-10 text-gray-500 bg-app-card rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+              <CalendarIcon className="w-8 h-8 text-gray-300" />
+            </div>
+            <p className="text-base font-medium">ไม่มีกำหนดการในวันนี้</p>
           </div>
         )}
       </div>

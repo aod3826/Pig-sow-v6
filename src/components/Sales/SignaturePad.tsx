@@ -113,7 +113,7 @@ export default function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
         
         <div className="p-4 flex-1 flex flex-col">
           <p className="text-sm text-gray-500 mb-2 text-center">กรุณาเซ็นชื่อลงในกรอบด้านล่าง</p>
-          <div className="flex-1 bg-slate-50 border-2 border-dashed border-gray-300 rounded-xl relative overflow-hidden min-h-[250px]">
+          <div className="flex-1 bg-slate-50 border-2 border-dashed border-gray-300 rounded-2xl relative overflow-hidden min-h-[250px]">
             <canvas
               ref={canvasRef}
               className="absolute inset-0 cursor-crosshair touch-none"
@@ -131,13 +131,13 @@ export default function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
         <div className="p-4 border-t flex gap-3 bg-slate-50">
           <button 
             onClick={clear}
-            className="flex-1 py-3 rounded-xl font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-2xl font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors flex items-center justify-center gap-2"
           >
             <Eraser size={20} /> ล้าง
           </button>
           <button 
             onClick={save}
-            className="flex-[2] py-3 rounded-xl font-bold text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-2"
+            className="flex-[2] py-3 rounded-2xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
           >
             <Check size={20} /> ยืนยันลายเซ็น
           </button>

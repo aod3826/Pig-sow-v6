@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+@theme {
+  --color-app-bg: #F2F2F7;
+  --color-app-card: #F2EBE1;
+}

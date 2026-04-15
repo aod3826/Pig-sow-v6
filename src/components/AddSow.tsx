@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { format } from 'date-fns';
 
 interface AddSowProps {
@@ -11,7 +11,7 @@ export default function AddSow({ onAdd }: AddSowProps) {
   const [birthDate, setBirthDate] = useState('');
   const [entryDate, setEntryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!sowId.trim() || !entryDate) return;
     onAdd(sowId.trim(), breed.trim(), birthDate ? new Date(birthDate).toISOString() : '', new Date(entryDate).toISOString());
@@ -23,7 +23,7 @@ export default function AddSow({ onAdd }: AddSowProps) {
 
   return (
     <div className="p-4">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div className="bg-app-card p-6 rounded-3xl shadow-md border border-gray-100">
         <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">เพิ่มแม่หมูใหม่</h2>
         
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -35,7 +35,7 @@ export default function AddSow({ onAdd }: AddSowProps) {
               type="text"
               id="sowId"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               placeholder="เช่น SOW-001"
               value={sowId}
               onChange={(e) => setSowId(e.target.value)}
@@ -49,7 +49,7 @@ export default function AddSow({ onAdd }: AddSowProps) {
             <input
               type="text"
               id="breed"
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               placeholder="เช่น ลาร์จไวท์, แลนด์เรซ"
               value={breed}
               onChange={(e) => setBreed(e.target.value)}
@@ -63,7 +63,7 @@ export default function AddSow({ onAdd }: AddSowProps) {
             <input
               type="date"
               id="birthDate"
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
             />
@@ -77,7 +77,7 @@ export default function AddSow({ onAdd }: AddSowProps) {
               type="date"
               id="entryDate"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               value={entryDate}
               onChange={(e) => setEntryDate(e.target.value)}
             />
@@ -85,7 +85,7 @@ export default function AddSow({ onAdd }: AddSowProps) {
 
           <button
             type="submit"
-            className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-pink-700 active:bg-pink-800 transition-colors shadow-md"
+            className="w-full bg-emerald-600 text-white font-bold py-4 px-4 rounded-full hover:bg-emerald-700 active:bg-emerald-800 transition-colors shadow-md text-lg"
           >
             บันทึกข้อมูล
           </button>

@@ -1,4 +1,4 @@
-export type SowStatus = 'IDLE' | 'BRED' | 'PREGNANT' | 'PREPARING' | 'NURSING' | 'CULL_SUGGESTED' | 'CULLED';
+export type SowStatus = 'IDLE' | 'BRED' | 'PREGNANT' | 'PREPARING' | 'NURSING' | 'CULL_SUGGESTED' | 'CULLED' | 'GILT';
 
 export type EventType = 
   | 'ENTRY'
@@ -92,6 +92,7 @@ export interface SaleRecord {
   netTotal: number;
   paymentStatus: 'PAID' | 'UNPAID';
   signature?: string;
+  receiptUrl?: string;
   createdAt?: string;
 }
 
@@ -106,11 +107,23 @@ export interface Task {
 
 export type ExpenseCategory = 'FEED' | 'MEDICINE' | 'EQUIPMENT' | 'MAINTENANCE' | 'UTILITIES' | 'SALARY' | 'OTHER';
 
+export interface ExpenseItem {
+  id: string;
+  name: string; // e.g., "รำละเอียด", "ปลายข้าว"
+  quantity: number;
+  unit: string; // e.g., "กก.", "กระสอบ"
+  unitPrice: number;
+  totalPrice: number;
+}
+
 export interface ExpenseRecord {
   id: string;
+  shopName: string;
   category: ExpenseCategory;
-  amount: number;
+  totalAmount: number;
   date: string; // ISO string
   note?: string;
+  receiptUrl?: string;
+  items: ExpenseItem[];
   createdAt?: string;
 }

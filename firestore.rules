@@ -8,6 +8,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Allow authenticated users to read and write their own profile
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
     // Allow authenticated users to read and write sows
     match /sows/{sowId} {
       allow read, write: if isAuthenticated();
