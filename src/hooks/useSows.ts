@@ -106,6 +106,7 @@ export function useSows(isAuthReady: boolean) {
               semenId: e.semenId,
               semenSource: e.semenSource,
               inseminator: e.inseminator,
+              matingTime: e.matingTime,
               pregResult: e.pregResult,
               pigletCount: e.pigletCount,
               liveBorn: e.liveBorn,
@@ -176,6 +177,8 @@ export function useSows(isAuthReady: boolean) {
     const eventParity = newParity; // Record the event under the current cycle before incrementing
     let newStatus = sow.status;
     let currentCycleStartDate = sow.currentCycleStartDate;
+    let statusUpdatedAt = sow.statusUpdatedAt;
+    let failedBreedings = sow.failedBreedings || 0;
     let farrowDate = sow.farrowDate;
     let weanDate = sow.weanDate;
 
@@ -184,52 +187,77 @@ export function useSows(isAuthReady: boolean) {
       case 'BREED':
         // If already BRED, we are just adding another insemination to the current cycle.
         // We don't change the status or the cycle start date.
+        // If coming from RECOVERING without incrementing parity:
         if (sow.status !== 'BRED') {
           newStatus = 'BRED';
           currentCycleStartDate = date;
+          statusUpdatedAt = new Date().toISOString();
         }
         break;
       case 'CHECK_ESTRUS':
         if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {
-          newStatus = 'IDLE';
+          failedBreedings += 1;
+          if (failedBreedings >= 3) {
+            newStatus = 'CULL_SUGGESTED';
+          } else if (payload.bcsScore && payload.bcsScore < 3 || payload.hasDischarge) {
+            newStatus = 'RECOVERING';
+            statusUpdatedAt = new Date().toISOString();
+          } else {
+            newStatus = 'IDLE';
+            statusUpdatedAt = new Date().toISOString();
+          }
         } else if (payload.pregResult === 'POSITIVE') {
           newStatus = 'BRED'; // Keep as BRED until VISUAL_PREG_CHECK confirms
         }
         break;
       case 'VISUAL_PREG_CHECK':
         if (payload.pregResult === 'NEGATIVE' || payload.pregResult === 'ABORTION') {
-          newStatus = 'IDLE';
+          failedBreedings += 1;
+          if (failedBreedings >= 3) {
+            newStatus = 'CULL_SUGGESTED';
+          } else {
+            newStatus = 'RECOVERING'; // Always recover after 60 days failure
+            statusUpdatedAt = new Date().toISOString();
+          }
         } else if (payload.pregResult === 'POSITIVE') {
           newStatus = 'PREGNANT'; // Confirmed pregnant
+          statusUpdatedAt = new Date().toISOString();
         }
         break;
       case 'MOVE_TO_PEN':
-        if (sow.status === 'PREGNANT') newStatus = 'PREPARING';
+        if (sow.status === 'PREGNANT') {
+          newStatus = 'PREPARING';
+          statusUpdatedAt = new Date().toISOString();
+        }
         break;
       case 'FARROW':
         if (sow.status === 'PREPARING') {
           newStatus = 'NURSING';
           farrowDate = date;
+          statusUpdatedAt = new Date().toISOString();
         }
         break;
       case 'WEAN':
         if (sow.status === 'NURSING') {
-          // Increment parity on WEAN as requested
           newParity += 1;
+          failedBreedings = 0; // Reset strikes on successful parity
           if (newParity >= 7) {
             newStatus = 'CULL_SUGGESTED';
           } else {
             newStatus = 'IDLE';
           }
           weanDate = date;
+          statusUpdatedAt = new Date().toISOString();
         }
         break;
       case 'RETURN_ESTRUS':
         newStatus = 'IDLE';
         weanDate = date; 
+        statusUpdatedAt = new Date().toISOString();
         break;
       case 'CULL':
         newStatus = 'CULLED';
+        statusUpdatedAt = new Date().toISOString();
         break;
     }
 
@@ -241,6 +269,8 @@ export function useSows(isAuthReady: boolean) {
         status: newStatus,
         parity: newParity,
         currentCycleStartDate: currentCycleStartDate || null,
+        statusUpdatedAt: statusUpdatedAt || null,
+        failedBreedings: failedBreedings,
         farrowDate: farrowDate || null,
         weanDate: weanDate || null,
         updatedAt: new Date().toISOString()

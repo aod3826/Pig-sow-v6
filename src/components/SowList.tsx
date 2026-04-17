@@ -1,7 +1,7 @@
 import { Sow } from '../types';
 import { STATUS_LABELS, getUpcomingTasksForSow, EVENT_LABELS } from '../lib/cycleEngine';
 import { cn, formatDate } from '../lib/utils';
-import { ChevronRight, Search, Calendar, Download, Filter, ArrowUpDown } from 'lucide-react';
+import { ChevronRight, Search, Calendar as CalendarIcon, Download, Filter, ArrowUpDown, Check } from 'lucide-react';
 import { useState } from 'react';
 import { exportSowsToCSV } from '../lib/export';
 
@@ -9,6 +9,114 @@ interface SowListProps {
   sows: Sow[];
   onSelectSow: (id: string) => void;
 }
+
+const CycleStepper = ({ status }: { status: Sow['status'] }) => {
+  if (['CULLED', 'CULL_SUGGESTED'].includes(status)) return null;
+
+  const steps = [
+    { label: status === 'RECOVERING' ? 'พักฟื้น' : 'รอผสม', statuses: ['IDLE', 'GILT', 'RECOVERING'] },
+    { label: 'รอตรวจ', statuses: ['BRED'] },
+    { label: 'ตั้งท้อง', statuses: ['PREGNANT', 'PREPARING'] },
+    { label: 'เลี้ยงลูก', statuses: ['NURSING'] }
+  ];
+
+  let currentIndex = 0;
+  if (['NURSING'].includes(status)) currentIndex = 3;
+  else if (['PREGNANT', 'PREPARING'].includes(status)) currentIndex = 2;
+  else if (['BRED'].includes(status)) currentIndex = 1;
+  else currentIndex = 0;
+
+  return (
+    <div className="mt-4 pt-3 border-t border-gray-100 flex flex-col">
+      {/* Stepper UI */}
+      <div className="relative flex justify-between items-center px-4 mb-3">
+        {/* Progress Line */}
+        <div className="absolute left-[10%] right-[10%] top-2.5 h-[3px] bg-gray-200 -z-10"></div>
+        <div 
+          className="absolute left-[10%] top-2.5 h-[3px] bg-emerald-500 transition-all duration-500 -z-10"
+          style={{ width: `${(currentIndex / 3) * 80}%` }}
+        ></div>
+
+        {steps.map((step, idx) => {
+          const isActive = idx === currentIndex;
+          const isCompleted = idx < currentIndex;
+          
+          return (
+            <div key={idx} className="flex flex-col items-center gap-1.5 bg-white px-1">
+              <div className={cn(
+                "w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors",
+                isCompleted ? "bg-emerald-500 border-emerald-500 text-white" :
+                isActive ? "bg-white border-emerald-500 ring-2 ring-emerald-100" :
+                "bg-white border-gray-300"
+              )}>
+                {isCompleted && <Check className="w-3 h-3" />}
+                {!isCompleted && isActive && <div className="w-2 h-2 rounded-full bg-emerald-500"></div>}
+              </div>
+              <span className={cn(
+                "text-[10px] font-bold",
+                isActive || isCompleted ? "text-gray-800" : "text-gray-400"
+              )}>
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Action Tip */}
+      <ActionTip status={status} />
+    </div>
+  );
+};
+
+const ActionTip = ({ status }: { status: Sow['status'] }) => {
+  switch(status) {
+    case 'GILT':
+    case 'IDLE':
+      return (
+        <div className="text-xs text-pink-700 bg-pink-50/70 p-2.5 rounded-xl border border-pink-100 flex items-start gap-2 leading-relaxed">
+          <span className="text-sm leading-none shrink-0">🔍</span> 
+          <span><b>ข้อปฏิบัติ:</b> สังเกตอาการเป็นสัด (อวัยวะเพศบวม/แดง/ยืนนิ่ง) เพื่อเตรียมตัวผสมพันธุ์</span>
+        </div>
+      );
+    case 'BRED':
+       return (
+        <div className="text-xs text-blue-700 bg-blue-50/70 p-2.5 rounded-xl border border-blue-100 flex items-start gap-2 leading-relaxed">
+          <span className="text-sm leading-none shrink-0">⏳</span> 
+          <span><b>ข้อปฏิบัติ:</b> เฝ้าระวังการกลับสัดอย่างใกล้ชิดในช่วง 21 วันแรก ไม่ควรเคลื่อนย้าย หรือทำให้หมูเครียด</span>
+        </div>
+       );
+    case 'PREGNANT':
+       return (
+        <div className="text-xs text-purple-700 bg-purple-50/70 p-2.5 rounded-xl border border-purple-100 flex items-start gap-2 leading-relaxed">
+          <span className="text-sm leading-none shrink-0">🍎</span> 
+          <span><b>ข้อปฏิบัติ:</b> ปรับเพิ่มอาหารตามระยะตั้งครรภ์ และฉีดวัคซีนบำรุงตามโปรแกรมของฟาร์ม</span>
+        </div>
+       );
+    case 'PREPARING':
+       return (
+        <div className="text-xs text-orange-700 bg-orange-50/70 p-2.5 rounded-xl border border-orange-100 flex items-start gap-2 leading-relaxed">
+          <span className="text-sm leading-none shrink-0">🛁</span> 
+          <span><b>ข้อปฏิบัติ:</b> อาบน้ำฆ่าเชื้อแม่หมู ย้ายเข้าคอกคลอดที่สะอาด เตรียมไฟกก และเฝ้าระวังการคลอด</span>
+        </div>
+       );
+    case 'NURSING':
+       return (
+        <div className="text-xs text-green-700 bg-green-50/70 p-2.5 rounded-xl border border-green-100 flex items-start gap-2 leading-relaxed">
+          <span className="text-sm leading-none shrink-0">🍼</span> 
+          <span><b>ข้อปฏิบัติ:</b> ระวังแม่ทับลูก ให้อาหารแม่เต็มที่ (กินไม่จำกัด) เพื่อให้ผลิตน้ำนมเพียงพอ</span>
+        </div>
+       );
+    case 'RECOVERING':
+       return (
+        <div className="text-xs text-amber-700 bg-amber-50/70 p-2.5 rounded-xl border border-amber-100 flex items-start gap-2 leading-relaxed">
+          <span className="text-sm leading-none shrink-0">🏥</span> 
+          <span><b>ข้อปฏิบัติ:</b> ตีตกการผสม/พักฟื้น 21 วัน (รักษาอาการอักเสบ หรือให้ Flushing Diet กระตุ้นไข่) และรอเช็คสัดเพื่อผสมรอบหน้า</span>
+        </div>
+       );
+    default: return null;
+  }
+};
 
 export default function SowList({ sows, onSelectSow }: SowListProps) {
   const [search, setSearch] = useState('');
@@ -46,6 +154,7 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
       case 'PREGNANT': return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'PREPARING': return 'bg-orange-50 text-orange-700 border-orange-200';
       case 'NURSING': return 'bg-green-50 text-green-700 border-green-200';
+      case 'RECOVERING': return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'CULL_SUGGESTED': return 'bg-red-50 text-red-700 border-red-200';
       case 'CULLED': return 'bg-gray-800 text-white border-gray-700';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -128,7 +237,7 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
 
       <div className="flex-1 overflow-y-auto pb-24 space-y-3">
         {processedSows.length === 0 ? (
-          <div className="text-center py-10 text-gray-500 text-base bg-app-card rounded-3xl border border-gray-200 shadow-sm">
+          <div className="text-center py-10 text-gray-500 text-base bg-white rounded-3xl border border-gray-200 shadow-sm">
             ไม่พบข้อมูลแม่หมู
           </div>
         ) : (
@@ -140,51 +249,56 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
               <div 
                 key={sow.id}
                 onClick={() => onSelectSow(sow.id)}
-                className="bg-app-card rounded-2xl border border-gray-200 shadow-sm p-4 cursor-pointer hover:border-emerald-300 hover:shadow-md active:bg-emerald-50 transition-all flex items-center justify-between"
+                className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 cursor-pointer hover:border-emerald-300 hover:shadow-md active:bg-emerald-50 transition-all flex flex-col"
               >
-                {/* Left Side: ID, Parity, Status */}
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    <h3 className="font-bold text-xl text-gray-900">{sow.id}</h3>
-                    <span className={cn("text-xs font-bold px-3 py-1 rounded-full border", getStatusColor(sow.status))}>
-                      {STATUS_LABELS[sow.status]}
-                    </span>
+                <div className="flex items-start justify-between">
+                  {/* Left Side: ID, Parity, Status */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-bold text-xl text-gray-900">{sow.id}</h3>
+                      <span className={cn("text-xs font-bold px-3 py-1 rounded-full border", getStatusColor(sow.status))}>
+                        {STATUS_LABELS[sow.status]}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-500 font-medium">
+                      รอบผลิตที่ {Math.min((sow.parity ?? 0) + 1, 7)}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500 font-medium">
-                    รอบผลิตที่ {Math.min((sow.parity ?? 0) + 1, 7)}
+
+                  {/* Right Side: Next Task */}
+                  <div className="flex flex-col items-end gap-2">
+                    {nextTask ? (
+                      <>
+                        <span className={cn(
+                          "font-bold text-xs px-3 py-1 rounded-full",
+                          nextTask.daysDiff < 0 ? "text-red-700 bg-red-50" :
+                          nextTask.daysDiff === 0 ? "text-yellow-700 bg-yellow-50" :
+                          "text-green-700 bg-green-50"
+                        )}>
+                          {nextTask.daysDiff < 0 ? `เลย ${Math.abs(nextTask.daysDiff)} วัน` :
+                           nextTask.daysDiff === 0 ? "วันนี้" :
+                           `อีก ${nextTask.daysDiff} วัน`}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <div className={cn(
+                            "w-2 h-2 rounded-full",
+                            nextTask.daysDiff < 0 ? "bg-red-500" :
+                            nextTask.daysDiff === 0 ? "bg-yellow-500" :
+                            "bg-green-500"
+                          )}></div>
+                          <span className="text-gray-700 font-bold text-sm">
+                            {EVENT_LABELS[nextTask.type]}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-gray-400 text-sm font-medium mt-1">ไม่มีกำหนดการ</span>
+                    )}
                   </div>
                 </div>
 
-                {/* Right Side: Next Task */}
-                <div className="flex flex-col items-end gap-2">
-                  {nextTask ? (
-                    <>
-                      <span className={cn(
-                        "font-bold text-xs px-3 py-1 rounded-full",
-                        nextTask.daysDiff < 0 ? "text-red-700 bg-red-50" :
-                        nextTask.daysDiff === 0 ? "text-yellow-700 bg-yellow-50" :
-                        "text-green-700 bg-green-50"
-                      )}>
-                        {nextTask.daysDiff < 0 ? `เลย ${Math.abs(nextTask.daysDiff)} วัน` :
-                         nextTask.daysDiff === 0 ? "วันนี้" :
-                         `อีก ${nextTask.daysDiff} วัน`}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full",
-                          nextTask.daysDiff < 0 ? "bg-red-500" :
-                          nextTask.daysDiff === 0 ? "bg-yellow-500" :
-                          "bg-green-500"
-                        )}></div>
-                        <span className="text-gray-700 font-bold text-sm">
-                          {EVENT_LABELS[nextTask.type]}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-gray-400 text-sm font-medium">ไม่มีกำหนดการ</span>
-                  )}
-                </div>
+                {/* Progress Stepper & Action Tip */}
+                <CycleStepper status={sow.status} />
               </div>
             );
           })

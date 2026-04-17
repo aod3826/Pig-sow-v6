@@ -36,6 +36,7 @@ export const STATUS_LABELS: Record<Sow['status'], string> = {
   NURSING: 'เลี้ยงลูก',
   CULL_SUGGESTED: 'ควรคัดออก',
   CULLED: 'คัดออกแล้ว',
+  RECOVERING: 'พักฟื้น/รอรอบสัด',
 };
 
 export function getUpcomingTasksForSow(sow: Sow): Task[] {
@@ -99,7 +100,7 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
     if (lastEvent) {
       if (lastEvent.type === 'WEAN') {
         addTask('BREED', lastEvent.date, CYCLE_RULES.REBREED);
-      } else if (['CHECK_ESTRUS', 'VISUAL_PREG_CHECK', 'RETURN_ESTRUS', 'ABORTION'].includes(lastEvent.type)) {
+      } else if (['CHECK_ESTRUS', 'VISUAL_PREG_CHECK', 'RETURN_ESTRUS'].includes(lastEvent.type) && lastEvent.pregResult !== 'ABORTION') {
         addTask('BREED', lastEvent.date, 0); // Breed immediately
       } else if (lastEvent.type === 'ENTRY') {
         addTask('BREED', lastEvent.date, 0); // Ready to breed
@@ -109,6 +110,11 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
     } else {
       if (sow.entryDate) addTask('BREED', sow.entryDate, 0);
     }
+  }
+
+  if (sow.status === 'RECOVERING' && sow.statusUpdatedAt) {
+    // 21 days from when it was set to RECOVERING
+    addTask('BREED', sow.statusUpdatedAt, 18); // Actually we should ping them on day 18 to start checking estrus (Boar Test)
   }
 
   // Sort tasks by expected date ascending

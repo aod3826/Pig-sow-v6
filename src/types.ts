@@ -1,4 +1,4 @@
-export type SowStatus = 'IDLE' | 'BRED' | 'PREGNANT' | 'PREPARING' | 'NURSING' | 'CULL_SUGGESTED' | 'CULLED' | 'GILT';
+export type SowStatus = 'IDLE' | 'BRED' | 'PREGNANT' | 'PREPARING' | 'NURSING' | 'CULL_SUGGESTED' | 'CULLED' | 'GILT' | 'RECOVERING';
 
 export type EventType = 
   | 'ENTRY'
@@ -31,10 +31,14 @@ export interface SowEvent {
   semenId?: string;
   semenSource?: string;
   inseminator?: string;
+  matingTime?: 'MORNING' | 'EVENING' | 'ANY';
   
   // PREG_CHECK (CHECK_ESTRUS, VISUAL_PREG_CHECK)
   pregResult?: PregResult;
   aiConfidence?: string;
+  isSuccess?: boolean;
+  bcsScore?: number;
+  hasDischarge?: boolean;
   
   // FARROW
   pigletCount?: number; // Total or Live born
@@ -62,6 +66,8 @@ export interface Sow {
   status: SowStatus;
   parity?: number;
   currentCycleStartDate?: string; // Date of last BREED
+  statusUpdatedAt?: string;
+  failedBreedings?: number;
   farrowDate?: string; // Date of last FARROW
   weanDate?: string; // Date of last WEAN
   history: SowEvent[];

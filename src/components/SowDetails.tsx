@@ -105,11 +105,15 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
     const payload: any = { ...formData };
     delete payload.date; // Date is passed separately
     
-    ['pigletCount', 'liveBorn', 'stillborn', 'mummified', 'avgBirthWeight', 'weanedCount', 'totalWeanWeight', 'cullPrice'].forEach(key => {
+    ['pigletCount', 'liveBorn', 'stillborn', 'mummified', 'avgBirthWeight', 'weanedCount', 'totalWeanWeight', 'cullPrice', 'bcsScore'].forEach(key => {
       if (payload[key]) {
         payload[key] = parseFloat(payload[key]);
       }
     });
+
+    if (payload.hasDischarge !== undefined) {
+      payload.hasDischarge = payload.hasDischarge === 'true';
+    }
     
     onRecordEvent(
       sow.id, 
@@ -124,9 +128,9 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
   };
 
   return (
-    <div className="flex flex-col h-full bg-app-bg relative">
+    <div className="flex flex-col h-full bg-slate-100 relative">
       {/* Header */}
-      <div className="bg-app-card px-4 py-4 border-b flex items-center justify-between sticky top-0 z-20">
+      <div className="bg-white px-4 py-4 border-b flex items-center justify-between sticky top-0 z-20">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 flex items-center gap-1">
           <ArrowLeft className="w-7 h-7 text-gray-700" />
           <span className="font-medium text-gray-700 text-base">กลับ</span>
@@ -143,7 +147,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
-                <div className="absolute right-0 mt-2 w-56 bg-app-card rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
                   <button 
                     onClick={() => { setShowEventModal('HEALTH_NOTE'); setShowMenu(false); }} 
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700 font-medium"
@@ -180,7 +184,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 bg-app-card sticky top-[65px] z-10 shadow-sm">
+      <div className="flex border-b border-gray-200 bg-white sticky top-[65px] z-10 shadow-sm">
         <button 
           onClick={() => setActiveTab('tasks')}
           className={cn("flex-1 py-4 flex flex-col items-center justify-center text-sm font-bold border-b-2 transition-colors relative", activeTab === 'tasks' ? "border-emerald-600 text-emerald-600" : "border-transparent text-gray-500 hover:text-gray-700")}
@@ -207,7 +211,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
             {tasks.length > 0 ? (
               <div className="space-y-3">
                 {tasks.map((task, index) => (
-                  <div key={task.id} className="bg-app-card p-5 rounded-3xl shadow-md border border-gray-100 flex items-center justify-between">
+                  <div key={task.id} className="bg-white p-5 rounded-3xl shadow-md border border-gray-100 flex items-center justify-between">
                     <div className="flex items-center">
                       <div className={cn(
                         "w-12 h-12 rounded-full flex items-center justify-center mr-4 text-lg font-bold",
@@ -239,7 +243,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-500 bg-app-card rounded-2xl border border-gray-100">
+              <div className="text-center py-12 text-gray-500 bg-white rounded-2xl border border-gray-100">
                 <CheckCircle2 className="w-16 h-16 mx-auto text-green-400 mb-4" />
                 <p className="text-lg">ไม่มีกำหนดการในขณะนี้</p>
               </div>
@@ -251,7 +255,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
         {activeTab === 'history' && (
           <section className="animate-in fade-in duration-200">
             {sow.history.length === 0 ? (
-              <div className="text-center py-12 text-gray-500 bg-app-card rounded-2xl border border-gray-100">
+              <div className="text-center py-12 text-gray-500 bg-white rounded-2xl border border-gray-100">
                 <p className="text-lg">ยังไม่มีประวัติกิจกรรม</p>
               </div>
             ) : (
@@ -268,12 +272,12 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
                         <span className="text-base font-medium text-gray-600 bg-gray-100 px-3 py-1.5 rounded-md">ให้ลูก: {farrowEvent.pigletCount} ตัว</span>
                       )}
                     </div>
-                    <div className="bg-app-card rounded-3xl shadow-md border border-gray-100 p-6">
+                    <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-6">
                       <div className="relative border-l-2 border-gray-200 ml-4 space-y-8">
                         {eventsInParity.map((event) => (
                           <div key={event.id} className="relative pl-8">
-                            <div className="absolute -left-[11px] top-1 bg-app-card">
-                              <CheckCircle2 className="w-5 h-5 text-green-500 bg-app-card rounded-full" />
+                            <div className="absolute -left-[11px] top-1 bg-white">
+                              <CheckCircle2 className="w-5 h-5 text-green-500 bg-white rounded-full" />
                             </div>
                             <div>
                               <p className="font-bold text-lg text-gray-900">{EVENT_LABELS[event.type]}</p>
@@ -288,6 +292,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
                                     {event.breedingMethod !== 'NATURAL' && event.semenId && <p>รหัสน้ำเชื้อ: <span className="font-medium">{event.semenId}</span></p>}
                                     {event.breedingMethod !== 'NATURAL' && event.semenSource && <p>แหล่งที่มา: <span className="font-medium">{event.semenSource}</span></p>}
                                     {event.inseminator && <p>ผู้ผสม: <span className="font-medium">{event.inseminator}</span></p>}
+                                    {event.matingTime && event.matingTime !== 'ANY' && <p>รอบเวลา: <span className="font-medium text-emerald-700">{event.matingTime === 'MORNING' ? 'เช้า' : 'เย็น'}</span></p>}
                                   </>
                                 )}
                                 {event.type === 'CHECK_ESTRUS' && event.pregResult && (
@@ -356,7 +361,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
       {/* Event Modal */}
       {showEventModal && (
         <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-app-card w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom-full duration-200 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom-full duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900">บันทึก: {EVENT_LABELS[showEventModal]}</h3>
               <button onClick={() => setShowEventModal(null)} className="text-gray-400 hover:text-gray-600 text-2xl">
@@ -470,6 +475,18 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
                     </>
                   )}
                   <div>
+                    <label className="block text-base font-medium text-gray-700 mb-2">รอบเวลาผสม (เช้า/เย็น)</label>
+                    <select
+                      className="w-full px-4 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-lg"
+                      value={formData.matingTime || 'ANY'}
+                      onChange={(e) => setFormData({...formData, matingTime: e.target.value})}
+                    >
+                      <option value="ANY">ไม่ระบุ</option>
+                      <option value="MORNING">เช้า</option>
+                      <option value="EVENING">เย็น</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-base font-medium text-gray-700 mb-2">ผู้ผสม</label>
                     <input
                       type="text"
@@ -482,19 +499,51 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
               )}
 
               {showEventModal === 'CHECK_ESTRUS' && (
-                <div>
-                  <label className="block text-base font-medium text-gray-700 mb-2">ผลการตรวจกลับสัด (21 วัน)</label>
-                  <select
-                    required
-                    className="w-full px-4 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-lg"
-                    value={formData.pregResult || ''}
-                    onChange={(e) => setFormData({...formData, pregResult: e.target.value})}
-                  >
-                    <option value="" disabled>เลือกผลการตรวจ</option>
-                    <option value="POSITIVE">ไม่กลับสัด (ไปต่อ)</option>
-                    <option value="NEGATIVE">กลับสัด (ไม่ติด)</option>
-                    <option value="ABORTION">แท้ง</option>
-                  </select>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-base font-medium text-gray-700 mb-2">ผลการตรวจกลับสัด (21 วัน)</label>
+                    <select
+                      required
+                      className="w-full px-4 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-lg"
+                      value={formData.pregResult || ''}
+                      onChange={(e) => setFormData({...formData, pregResult: e.target.value})}
+                    >
+                      <option value="" disabled>เลือกผลการตรวจ</option>
+                      <option value="POSITIVE">ไม่กลับสัด (ไปต่อ)</option>
+                      <option value="NEGATIVE">กลับสัด (ไม่ติด)</option>
+                      <option value="ABORTION">แท้ง</option>
+                    </select>
+                  </div>
+                  
+                  {formData.pregResult === 'NEGATIVE' && (
+                    <div className="bg-red-50 p-4 rounded-2xl border border-red-100 flex flex-col gap-4 animate-in fade-in">
+                      <div>
+                        <label className="block text-base font-bold text-red-800 mb-2">คะแนนร่างกาย (BCS 1-5)</label>
+                        <select
+                          required
+                          className="w-full px-4 py-3 rounded-xl border border-red-200 focus:ring-2 focus:ring-red-500 outline-none bg-white font-medium"
+                          value={formData.bcsScore || ''}
+                          onChange={(e) => setFormData({...formData, bcsScore: e.target.value})}
+                        >
+                          <option value="" disabled>เลือกคะแนน</option>
+                          <option value="1">1 - ผอมมาก (เห็นกระดูก)</option>
+                          <option value="2">2 - ผอม (เห็นลางๆ)</option>
+                          <option value="3">3 - หุ่นพอดี (คลำเจอซี่โครง)</option>
+                          <option value="4">4 - อ้วนท้วน (คลำยาก)</option>
+                          <option value="5">5 - อ้วนมาก</option>
+                        </select>
+                      </div>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="w-6 h-6 text-red-600 rounded border-red-300 focus:ring-red-500"
+                          checked={formData.hasDischarge === 'true'}
+                          onChange={(e) => setFormData({...formData, hasDischarge: e.target.checked ? 'true' : 'false'})}
+                        />
+                        <span className="font-bold text-red-800">มีหนอง/เมือกขุ่นไหลจากอวัยวะเพศ (มดลูกอักเสบ)</span>
+                      </label>
+                    </div>
+                  )}
                 </div>
               )}
 

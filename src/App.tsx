@@ -58,8 +58,8 @@ export default function App() {
 
   if (!isAuthReady) {
     return (
-      <div className="min-h-[100dvh] bg-gray-200 flex justify-center items-center">
-        <div className="w-full max-w-2xl bg-app-bg min-h-[100dvh] shadow-xl flex flex-col items-center justify-center">
+      <div className="min-h-[100dvh] bg-slate-200 flex justify-center items-center">
+        <div className="w-full max-w-2xl bg-slate-100 min-h-[100dvh] shadow-xl flex flex-col items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
           <p className="text-gray-500 font-medium text-lg">กำลังตรวจสอบสิทธิ์...</p>
         </div>
@@ -69,8 +69,8 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="min-h-[100dvh] bg-gray-200 flex justify-center items-center">
-        <div className="w-full max-w-2xl bg-app-card min-h-[100dvh] shadow-xl flex flex-col items-center justify-center p-8">
+      <div className="min-h-[100dvh] bg-slate-200 flex justify-center items-center">
+        <div className="w-full max-w-2xl bg-white min-h-[100dvh] shadow-xl flex flex-col items-center justify-center p-8">
           <div className="text-7xl mb-6">🐷</div>
           <h1 className="text-3xl font-bold text-gray-900 mb-3">นิพนธุ์ฟาร์ม</h1>
           <p className="text-gray-500 mb-10 text-center text-lg">ระบบจัดการวงจรชีวิตแม่หมูในฟาร์ม</p>
@@ -87,8 +87,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-gray-200 flex justify-center items-center">
-        <div className="w-full max-w-2xl bg-app-bg min-h-[100dvh] shadow-xl flex flex-col items-center justify-center">
+      <div className="min-h-[100dvh] bg-slate-200 flex justify-center items-center">
+        <div className="w-full max-w-2xl bg-slate-100 min-h-[100dvh] shadow-xl flex flex-col items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
           <p className="text-gray-500 font-medium text-lg">กำลังโหลดข้อมูล...</p>
         </div>
@@ -127,8 +127,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gray-200 flex justify-center print:bg-white">
-      <div className="w-full max-w-2xl bg-app-bg h-[100dvh] shadow-xl relative flex flex-col overflow-hidden print:max-w-none print:h-auto print:shadow-none print:bg-white print:overflow-visible">
+    <div className="min-h-[100dvh] bg-slate-200 flex justify-center print:bg-white">
+      <div className="w-full max-w-2xl bg-slate-100 h-[100dvh] shadow-xl relative flex flex-col overflow-hidden print:max-w-none print:h-auto print:shadow-none print:bg-white print:overflow-visible">
         {/* Header */}
         <header className="bg-emerald-700 text-white p-4 shadow-md z-10 flex justify-between items-center shrink-0 print:hidden">
           <div className="flex items-center gap-3">

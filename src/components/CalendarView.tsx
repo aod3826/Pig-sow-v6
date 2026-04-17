@@ -66,8 +66,8 @@ export default function CalendarView({ sows, onSelectSow }: CalendarViewProps) {
   const selectedDayTasks = allTasks.filter(t => isSameDay(t.date, selectedDate));
 
   return (
-    <div className="p-4 flex flex-col min-h-full bg-app-bg">
-      <div className="bg-app-card rounded-3xl shadow-md border border-gray-100 overflow-hidden mb-6 shrink-0">
+    <div className="p-4 flex flex-col min-h-full bg-slate-50">
+      <div className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden mb-6 shrink-0">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -110,7 +110,7 @@ export default function CalendarView({ sows, onSelectSow }: CalendarViewProps) {
                 className={cn(
                   "min-h-[60px] sm:min-h-[80px] p-1 border-b border-r border-gray-100 relative cursor-pointer transition-all",
                   !isCurrentMonth && "bg-gray-50/50 text-gray-400",
-                  isCurrentMonth && "bg-app-card hover:bg-gray-50",
+                  isCurrentMonth && "bg-white hover:bg-gray-50",
                   isSelected && "bg-emerald-50/50",
                   (i + 1) % 7 === 0 && "border-r-0"
                 )}
@@ -166,7 +166,7 @@ export default function CalendarView({ sows, onSelectSow }: CalendarViewProps) {
             <div 
               key={i}
               onClick={() => onSelectSow(task.sowId)}
-              className="bg-app-card p-4 rounded-3xl shadow-md border border-gray-100 flex items-center justify-between cursor-pointer hover:border-emerald-300 transition-colors"
+              className="bg-white p-4 rounded-3xl shadow-md border border-gray-100 flex items-center justify-between cursor-pointer hover:border-emerald-300 transition-colors"
             >
               <div className="flex items-center gap-4">
                 <div className={cn(
@@ -196,7 +196,7 @@ export default function CalendarView({ sows, onSelectSow }: CalendarViewProps) {
             </div>
           ))
         ) : (
-          <div className="text-center py-10 text-gray-500 bg-app-card rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center">
+          <div className="text-center py-10 text-gray-500 bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center">
             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
               <CalendarIcon className="w-8 h-8 text-gray-300" />
             </div>

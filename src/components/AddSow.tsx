@@ -23,7 +23,7 @@ export default function AddSow({ onAdd }: AddSowProps) {
 
   return (
     <div className="p-4">
-      <div className="bg-app-card p-6 rounded-3xl shadow-md border border-gray-100">
+      <div className="bg-white p-6 rounded-3xl shadow-md border border-gray-100">
         <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">เพิ่มแม่หมูใหม่</h2>
         
         <form onSubmit={handleSubmit} className="space-y-5">

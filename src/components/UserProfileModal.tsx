@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, ChangeEvent } from 'react';
 import { X, Upload, LogOut, Camera, Loader2 } from 'lucide-react';
 import { UserProfile } from '../hooks/useUserProfile';
 
@@ -17,7 +17,7 @@ export default function UserProfileModal({ isOpen, onClose, userEmail, profile, 
 
   if (!isOpen) return null;
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 

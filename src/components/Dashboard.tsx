@@ -126,7 +126,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
         <h2 className="text-xl font-bold text-gray-800">แดชบอร์ด</h2>
         <button 
           onClick={() => setShowLegend(true)}
-          className="p-2 bg-app-card rounded-full shadow-sm border border-gray-200 text-gray-500 hover:text-emerald-600 transition-colors"
+          className="p-2 bg-white rounded-full shadow-sm border border-gray-200 text-gray-500 hover:text-emerald-600 transition-colors"
         >
           <HelpCircle className="w-6 h-6" />
         </button>
@@ -215,7 +215,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
         <h2 className="text-lg font-bold text-gray-800 mb-3">ภาพรวมสถานะ</h2>
         <div className="grid grid-cols-2 gap-3">
           {Object.entries(STATUS_LABELS).map(([status, label]) => (
-            <div key={status} className="bg-app-card p-4 rounded-3xl shadow-md border border-gray-100 flex justify-between items-center">
+            <div key={status} className="bg-white p-4 rounded-3xl shadow-md border border-gray-100 flex justify-between items-center">
               <span className="text-sm text-gray-600 font-medium">{label}</span>
               <span className="text-lg font-bold text-emerald-600">{statusCounts[status] || 0}</span>
             </div>
@@ -234,14 +234,14 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
           สถิติประสิทธิภาพฟาร์ม
         </h2>
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-app-card p-5 rounded-3xl shadow-md border border-blue-100 flex flex-col items-center justify-center text-center">
+          <div className="bg-white p-5 rounded-3xl shadow-md border border-blue-100 flex flex-col items-center justify-center text-center">
             <span className="text-sm text-gray-500 mb-1">ลูกเกิดรอดเฉลี่ย</span>
             <div className="flex items-baseline">
               <span className="text-2xl font-black text-blue-600">{avgLiveBorn}</span>
               <span className="text-xs text-gray-400 ml-1">ตัว/ครอก</span>
             </div>
           </div>
-          <div className="bg-app-card p-5 rounded-3xl shadow-md border border-green-100 flex flex-col items-center justify-center text-center">
+          <div className="bg-white p-5 rounded-3xl shadow-md border border-green-100 flex flex-col items-center justify-center text-center">
             <span className="text-sm text-gray-500 mb-1">ลูกหย่านมเฉลี่ย</span>
             <div className="flex items-baseline">
               <span className="text-2xl font-black text-green-600">{avgWeaned}</span>
@@ -254,7 +254,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
       {/* Legend Modal */}
       {showLegend && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-app-card w-full max-w-md rounded-3xl p-6 animate-in zoom-in-95 duration-200 shadow-2xl">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 animate-in zoom-in-95 duration-200 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b pb-3">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <HelpCircle className="w-6 h-6 text-emerald-600" /> คู่มือการใช้งาน

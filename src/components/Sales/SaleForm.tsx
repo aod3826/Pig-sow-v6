@@ -128,9 +128,9 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
   };
 
   return (
-    <div className="flex flex-col h-full bg-app-bg relative">
+    <div className="flex flex-col h-full bg-slate-50 relative">
       {/* Header */}
-      <div className="bg-app-card px-4 py-4 border-b flex items-center justify-between sticky top-0 z-30">
+      <div className="bg-white px-4 py-4 border-b flex items-center justify-between sticky top-0 z-30">
         <button onClick={onCancel} className="p-2 -ml-2 rounded-full hover:bg-gray-100 flex items-center gap-1">
           <ArrowLeft className="w-7 h-7 text-gray-700" />
           <span className="font-medium text-gray-700 text-base">ยกเลิก</span>
@@ -140,7 +140,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
       </div>
 
       {/* Stepper Navigation */}
-      <div className="bg-app-card px-4 py-3 border-b flex justify-between items-center sticky top-[61px] z-20 shadow-sm">
+      <div className="bg-white px-4 py-3 border-b flex justify-between items-center sticky top-[61px] z-20 shadow-sm">
         <button onClick={() => setActiveTab('INFO')} className={`flex flex-col items-center gap-1 w-1/3 transition-colors ${activeTab === 'INFO' ? 'text-emerald-600' : 'text-gray-400'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors ${activeTab === 'INFO' ? 'bg-emerald-100' : 'bg-gray-100'}`}>1</div>
           <span className="text-xs font-bold">ข้อมูล</span>
@@ -161,7 +161,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
         
         {/* Tab 1: INFO */}
         <div className={activeTab === 'INFO' ? 'block' : 'hidden'}>
-          <div className="bg-app-card p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">ข้อมูลทั่วไป</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <div className="col-span-2 md:col-span-1">
@@ -222,7 +222,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">ประเภท</label>
               <select 
-                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg appearance-none bg-app-card"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none print:border-none print:p-0 print:font-bold print:text-lg appearance-none bg-white"
                 value={saleType}
                 onChange={e => setSaleType(e.target.value)}
               >
@@ -237,7 +237,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
 
         {/* Tab 2: WEIGHING */}
         <div className={activeTab === 'WEIGHING' ? 'block' : 'hidden'}>
-          <div className="bg-app-card p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-900">รายการชั่งน้ำหนัก</h3>
               <div className="flex gap-2">
@@ -324,9 +324,9 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               {processedWeighings.map((w, index) => {
                 const displayIndex = weighings.length - index;
                 return (
-                  <div key={w.id} className="bg-app-bg p-5 rounded-3xl border border-gray-200 shadow-sm relative">
+                  <div key={w.id} className="bg-slate-50 p-5 rounded-3xl border border-gray-200 shadow-sm relative">
                     <div className="flex justify-between items-center mb-3">
-                      <span className="font-bold text-gray-700 bg-app-card px-4 py-1.5 rounded-full text-sm border border-gray-200 shadow-sm">
+                      <span className="font-bold text-gray-700 bg-white px-4 py-1.5 rounded-full text-sm border border-gray-200 shadow-sm">
                         ชั่งครั้งที่ {displayIndex}
                       </span>
                       <button 
@@ -344,7 +344,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                         <input 
                           type="number" min="0" step="0.1"
                           autoFocus={index === 0 && weighings.length > 1}
-                          className="w-full text-center px-2 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-2xl font-bold bg-app-card shadow-inner"
+                          className="w-full text-center px-2 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-2xl font-bold bg-white shadow-inner"
                           value={w.grossWeight || ''}
                           onChange={e => handleChangeRow(w.id!, 'grossWeight', e.target.value)}
                           placeholder="0.0"
@@ -354,7 +354,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                         <label className="block text-sm font-medium text-gray-600 mb-1 text-center">หักกรง (กก.)</label>
                         <input 
                           type="number" min="0" step="0.1"
-                          className="w-full text-center px-2 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-2xl font-bold bg-app-card shadow-inner"
+                          className="w-full text-center px-2 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-2xl font-bold bg-white shadow-inner"
                           value={w.tareWeight || ''}
                           onChange={e => handleChangeRow(w.id!, 'tareWeight', e.target.value)}
                           placeholder="0.0"
@@ -385,7 +385,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
         {/* Tab 3: PAYMENT */}
         <div className={activeTab === 'PAYMENT' ? 'block space-y-6' : 'hidden'}>
           {/* Summary */}
-          <div className="bg-app-card p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">สรุปรายการ (Summary)</h3>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
