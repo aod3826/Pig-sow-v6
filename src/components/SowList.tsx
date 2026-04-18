@@ -8,10 +8,52 @@ import { exportSowsToCSV } from '../lib/export';
 interface SowListProps {
   sows: Sow[];
   onSelectSow: (id: string) => void;
+  onRecordEvent?: (id: string, type: any, date: string, payload?: any) => void;
+}
+
+const RecoveryPanel = ({ sow, onReady }: { sow: Sow, onReady: () => void }) => {
+  const daysRested = sow.statusUpdatedAt 
+    ? Math.floor((new Date().getTime() - new Date(sow.statusUpdatedAt).getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+  
+  const failEvent = [...sow.history].reverse().find(e => ['CHECK_ESTRUS', 'VISUAL_PREG_CHECK', 'ABORTION'].includes(e.type) && (e.pregResult === 'NEGATIVE' || e.pregResult === 'ABORTION'));
+  
+  let reason = "ไม่ทราบสาเหตุ";
+  if (failEvent) {
+    if (failEvent.pregResult === 'ABORTION') reason = 'แท้ง';
+    else if (failEvent.hasDischarge) reason = 'มดลูกอักเสบ (มีเมือก/หนอง)';
+    else if (failEvent.bcsScore && failEvent.bcsScore < 3) reason = 'ผอม/ทรุดโทรม (BCS ต่ำ)';
+    else reason = 'ไม่ตั้งท้อง (ตรวจพุง/กลับสัด)';
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-amber-100 flex flex-col gap-3">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2 text-amber-800 font-bold">
+          <span className="text-xl">🏥</span>
+          <span>พักฟื้นในห้องพยาบาล</span>
+        </div>
+        <div className="bg-amber-100 px-3 py-1 rounded-full text-sm font-bold text-amber-800">
+          ผ่านมาแล้ว: {daysRested} วัน
+        </div>
+      </div>
+      
+      <div className="text-sm text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+        <span className="font-bold">สาเหตุที่ถูกคัดออกพัก:</span> {reason}
+      </div>
+
+      <button 
+        onClick={(e) => { e.stopPropagation(); onReady(); }}
+        className="mt-1 w-full bg-gradient-to-r from-[#E91E63] to-[#F06292] text-white font-bold py-2.5 rounded-xl shadow-sm hover:opacity-90 transition-opacity"
+      >
+        ✅ พร้อมแล้ว เริ่มรอบผสมหมูสาว
+      </button>
+    </div>
+  );
 }
 
 const CycleStepper = ({ status }: { status: Sow['status'] }) => {
-  if (['CULLED', 'CULL_SUGGESTED'].includes(status)) return null;
+  if (['CULLED', 'CULL_SUGGESTED', 'RECOVERING'].includes(status)) return null;
 
   const steps = [
     { label: status === 'RECOVERING' ? 'พักฟื้น' : 'รอผสม', statuses: ['IDLE', 'GILT', 'RECOVERING'] },
@@ -107,21 +149,21 @@ const ActionTip = ({ status }: { status: Sow['status'] }) => {
           <span><b>ข้อปฏิบัติ:</b> ระวังแม่ทับลูก ให้อาหารแม่เต็มที่ (กินไม่จำกัด) เพื่อให้ผลิตน้ำนมเพียงพอ</span>
         </div>
        );
-    case 'RECOVERING':
+    case 'CULL_SUGGESTED':
        return (
-        <div className="text-xs text-amber-700 bg-amber-50/70 p-2.5 rounded-xl border border-amber-100 flex items-start gap-2 leading-relaxed">
-          <span className="text-sm leading-none shrink-0">🏥</span> 
-          <span><b>ข้อปฏิบัติ:</b> ตีตกการผสม/พักฟื้น 21 วัน (รักษาอาการอักเสบ หรือให้ Flushing Diet กระตุ้นไข่) และรอเช็คสัดเพื่อผสมรอบหน้า</span>
+        <div className="text-xs text-red-700 bg-red-50/70 p-2.5 rounded-xl border border-red-100 flex items-start gap-2 leading-relaxed">
+          <span className="text-sm leading-none shrink-0">🚨</span> 
+          <span><b>ข้อปฏิบัติ:</b> ผสมไม่ติดครบ 3 ครั้งในรอบนี้ แนะนำให้คัดทิ้งเพื่อลดต้นทุนค่าอาหาร</span>
         </div>
        );
     default: return null;
   }
 };
 
-export default function SowList({ sows, onSelectSow }: SowListProps) {
+export default function SowList({ sows, onSelectSow, onRecordEvent }: SowListProps) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
-  const [sortBy, setSortBy] = useState<string>('ID_ASC');
+  const [sortBy, setSortBy] = useState<string>('UPDATED_DESC');
 
   // 1. Filter by Search
   let processedSows = sows.filter(s => s.id.toLowerCase().includes(search.toLowerCase()));
@@ -134,6 +176,7 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
   // 3. Sort
   processedSows.sort((a, b) => {
     switch (sortBy) {
+      case 'UPDATED_DESC': return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
       case 'ID_ASC': return a.id.localeCompare(b.id);
       case 'ID_DESC': return b.id.localeCompare(a.id);
       case 'PARITY_ASC': return (a.parity || 1) - (b.parity || 1);
@@ -223,6 +266,7 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
+            <option value="UPDATED_DESC">บันทึกล่าสุด</option>
             <option value="ID_ASC">รหัส (A-Z)</option>
             <option value="ID_DESC">รหัส (Z-A)</option>
             <option value="PARITY_DESC">รอบผลิต (มากไปน้อย)</option>
@@ -297,8 +341,12 @@ export default function SowList({ sows, onSelectSow }: SowListProps) {
                   </div>
                 </div>
 
-                {/* Progress Stepper & Action Tip */}
-                <CycleStepper status={sow.status} />
+                {/* Progress Stepper & Action Tip OR Recovery Panel */}
+                {sow.status === 'RECOVERING' ? (
+                  <RecoveryPanel sow={sow} onReady={() => onRecordEvent?.(sow.id, 'RETURN_ESTRUS', new Date().toISOString(), { notes: 'ฟื้นฟูเสร็จสิ้นกลับสู่รอบผสม' })} />
+                ) : (
+                  <CycleStepper status={sow.status} />
+                )}
               </div>
             );
           })

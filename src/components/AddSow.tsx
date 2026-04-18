@@ -85,7 +85,7 @@ export default function AddSow({ onAdd }: AddSowProps) {
 
           <button
             type="submit"
-            className="w-full bg-emerald-600 text-white font-bold py-4 px-4 rounded-full hover:bg-emerald-700 active:bg-emerald-800 transition-colors shadow-md text-lg"
+            className="w-full bg-gradient-to-r from-[#E91E63] to-[#F06292] text-white font-bold py-4 px-4 rounded-full hover:opacity-90 active:opacity-100 transition-opacity shadow-md text-lg"
           >
             บันทึกข้อมูล
           </button>

@@ -71,6 +71,8 @@ export interface Sow {
   farrowDate?: string; // Date of last FARROW
   weanDate?: string; // Date of last WEAN
   history: SowEvent[];
+  updatedAt?: string;
+  cageId?: string; // Location of the sow in the pen
 }
 
 export interface WeighingRecord {

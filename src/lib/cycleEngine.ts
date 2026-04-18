@@ -112,9 +112,22 @@ export function getUpcomingTasksForSow(sow: Sow): Task[] {
     }
   }
 
-  if (sow.status === 'RECOVERING' && sow.statusUpdatedAt) {
-    // 21 days from when it was set to RECOVERING
-    addTask('BREED', sow.statusUpdatedAt, 18); // Actually we should ping them on day 18 to start checking estrus (Boar Test)
+  if (sow.status === 'RECOVERING') {
+    // Find the fail event that caused recovery
+    const failEvent = [...sow.history].reverse().find(e => ['CHECK_ESTRUS', 'VISUAL_PREG_CHECK', 'ABORTION'].includes(e.type) && (e.pregResult === 'NEGATIVE' || e.pregResult === 'ABORTION'));
+    const baseDate = failEvent ? failEvent.date : (sow.statusUpdatedAt || new Date().toISOString());
+
+    // 1. Task: Flushing Diet (Feed Boost)
+    // We want to remind them to do this within the first 1-2 days
+    const hasFeedBoostSinceFail = sow.history.slice(sow.history.findIndex(e => e.id === failEvent?.id) + 1).some(e => e.type === 'FEED_BOOST');
+    if (!hasFeedBoostSinceFail && failEvent) {
+      addTask('FEED_BOOST', baseDate, 1);
+    } else if (!failEvent) {
+      addTask('FEED_BOOST', baseDate, 1);
+    }
+
+    // 2. Task: Boar Test & Breed (Re-breed at Day 18 after fail)
+    addTask('BREED', baseDate, 18);
   }
 
   // Sort tasks by expected date ascending

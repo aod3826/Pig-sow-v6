@@ -162,6 +162,14 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
                       <Sparkles className="w-5 h-5" /> ผสมซ้ำ (ในรอบเดิม)
                     </button>
                   )}
+                  {['IDLE', 'GILT', 'RECOVERING'].includes(sow.status) && (
+                    <button 
+                      onClick={() => { setShowEventModal('BREED'); setShowMenu(false); }} 
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-pink-600 font-medium"
+                    >
+                      <Sparkles className="w-5 h-5" /> ผสมพันธุ์ (ขึ้นรอบใหม่)
+                    </button>
+                  )}
                   {['BRED', 'PREGNANT', 'PREPARING'].includes(sow.status) && (
                     <button 
                       onClick={() => { setShowEventModal('RETURN_ESTRUS'); setShowMenu(false); }} 
@@ -761,7 +769,7 @@ export default function SowDetails({ sow, allSows, onBack, onRecordEvent, onDele
 
               <button
                 type="submit"
-                className="w-full bg-emerald-600 text-white font-bold py-4 px-4 rounded-full hover:bg-emerald-700 mt-6 text-lg shadow-md transition-colors"
+                className="w-full bg-gradient-to-r from-[#E91E63] to-[#F06292] text-white font-bold py-4 px-4 rounded-full hover:opacity-90 mt-6 text-lg shadow-md transition-opacity"
               >
                 บันทึกข้อมูล
               </button>

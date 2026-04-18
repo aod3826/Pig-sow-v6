@@ -58,56 +58,18 @@ export default function SalesList({ sales, onAddSale, onDeleteSale, onUpdateSale
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       
-      const pdfBlob = pdf.output('blob');
-      const fileName = `receipt_${sale.id}.pdf`;
+      // Save locally
+      pdf.save(`ใบชั่งน้ำหนัก_${sale.buyerName}_${sale.date}.pdf`);
+
+      const subject = `ใบสรุปการขายหมูขุน นิพนธุ์ฟาร์ม - ${formatDate(sale.date)}`;
+      const body = `เรียน คุณ ${sale.buyerName},\n\nสรุปรายการขายหมูขุน วันที่ ${formatDate(sale.date)}\nทะเบียนรถ: ${sale.vehicleReg || '-'}\n\nจำนวนหมู: ${sale.totalPigs} ตัว\nน้ำหนักสุทธิรวม: ${sale.totalNetWeight.toFixed(1)} กก.\nน้ำหนักเฉลี่ย: ${sale.avgWeight.toFixed(2)} กก./ตัว\nราคาขาย: ${sale.pricePerKg} บาท/กก.\n\nยอดรวม: ${sale.grossTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nหักค่าใช้จ่าย: ${sale.deductions.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nยอดสุทธิ (NET TOTAL): ${sale.netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\nสถานะการชำระเงิน: ${sale.paymentStatus === 'PAID' ? 'ชำระเงินแล้ว' : 'ค้างชำระ'}\n\nระบบได้ดาวน์โหลดไฟล์ PDF ใบชั่งน้ำหนักลงในเครื่องของคุณแล้ว กรุณาแนบไฟล์ (Attach file) เพิ่มเติมก่อนส่งอีเมลนี้ด้วยครับ\n\nขอขอบคุณที่ใช้บริการ\nนิพนธุ์ฟาร์ม`;
+
+      const mailtoLink = `mailto:${sale.buyerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       
-      try {
-        // Upload to Firebase Storage with timeout
-        const storageRef = ref(storage, `receipts/${fileName}`);
-        
-        // Create a timeout promise (4 seconds)
-        const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('STORAGE_TIMEOUT')), 4000)
-        );
-        
-        // Race the upload against the timeout
-        await Promise.race([
-          uploadBytes(storageRef, pdfBlob),
-          timeoutPromise
-        ]);
-        
-        const downloadUrl = await getDownloadURL(storageRef);
-
-        // Save URL to database
-        await onUpdateSale(sale.id, { receiptUrl: downloadUrl });
-
-        const subject = `ใบสรุปการขายหมูขุน นิพนธุ์ฟาร์ม - ${formatDate(sale.date)}`;
-        const body = `เรียน คุณ ${sale.buyerName},\n\nสรุปรายการขายหมูขุน วันที่ ${formatDate(sale.date)}\nทะเบียนรถ: ${sale.vehicleReg || '-'}\n\nจำนวนหมู: ${sale.totalPigs} ตัว\nน้ำหนักสุทธิรวม: ${sale.totalNetWeight.toFixed(1)} กก.\nน้ำหนักเฉลี่ย: ${sale.avgWeight.toFixed(2)} กก./ตัว\nราคาขาย: ${sale.pricePerKg} บาท/กก.\n\nยอดรวม: ${sale.grossTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nหักค่าใช้จ่าย: ${sale.deductions.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nยอดสุทธิ (NET TOTAL): ${sale.netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\nสถานะการชำระเงิน: ${sale.paymentStatus === 'PAID' ? 'ชำระเงินแล้ว' : 'ค้างชำระ'}\n\nสามารถดาวน์โหลดหรือดูใบเสร็จรูปแบบ PDF ได้ที่ลิงก์นี้:\n${downloadUrl}\n\nขอขอบคุณที่ใช้บริการ\nนิพนธุ์ฟาร์ม`;
-
-        // Open email client with link
-        const mailtoLink = `mailto:${sale.buyerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        const a = document.createElement('a');
-        a.href = mailtoLink;
-        a.click();
-        
-      } catch (uploadError: any) {
-        console.error('Upload Error:', uploadError);
-        
-        // Fallback to local download
-        pdf.save(`ใบชั่งน้ำหนัก_${sale.buyerName}_${sale.date}.pdf`);
-        
-        const subject = `ใบสรุปการขายหมูขุน นิพนธุ์ฟาร์ม - ${formatDate(sale.date)}`;
-        const body = `เรียน คุณ ${sale.buyerName},\n\nสรุปรายการขายหมูขุน วันที่ ${formatDate(sale.date)}\nทะเบียนรถ: ${sale.vehicleReg || '-'}\n\nจำนวนหมู: ${sale.totalPigs} ตัว\nน้ำหนักสุทธิรวม: ${sale.totalNetWeight.toFixed(1)} กก.\nน้ำหนักเฉลี่ย: ${sale.avgWeight.toFixed(2)} กก./ตัว\nราคาขาย: ${sale.pricePerKg} บาท/กก.\n\nยอดรวม: ${sale.grossTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nหักค่าใช้จ่าย: ${sale.deductions.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nยอดสุทธิ (NET TOTAL): ${sale.netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\nสถานะการชำระเงิน: ${sale.paymentStatus === 'PAID' ? 'ชำระเงินแล้ว' : 'ค้างชำระ'}\n\nขอขอบคุณที่ใช้บริการ\nนิพนธุ์ฟาร์ม`;
-        const mailtoLink = `mailto:${sale.buyerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        
-        const a = document.createElement('a');
-        a.href = mailtoLink;
-        a.click();
-
-        if (uploadError.message === 'STORAGE_TIMEOUT' || uploadError.code?.includes('storage/')) {
-          alert('ไม่สามารถอัปโหลดไฟล์ PDF ขึ้นระบบได้ (อาจยังไม่ได้เปิดใช้งาน Firebase Storage)\n\nระบบได้ทำการดาวน์โหลดไฟล์ PDF ลงเครื่องให้แล้ว กรุณาแนบไฟล์นี้ด้วยตัวเองตอนส่งอีเมลครับ');
-        }
-      }
+      const a = document.createElement('a');
+      a.href = mailtoLink;
+      a.click();
+      
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('เกิดข้อผิดพลาดในการสร้างไฟล์ PDF');

@@ -93,6 +93,8 @@ export function useSows(isAuthReady: boolean) {
           currentCycleStartDate: s.currentCycleStartDate,
           farrowDate: s.farrowDate,
           weanDate: s.weanDate,
+          updatedAt: s.updatedAt,
+          cageId: s.cageId,
           history: eventsData
             .filter(e => e.sowId === s.id)
             .map(e => ({
@@ -153,7 +155,8 @@ export function useSows(isAuthReady: boolean) {
         entryDate,
         status: 'GILT',
         parity: 0,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
 
       // Create initial activity in sub-collection
@@ -252,7 +255,6 @@ export function useSows(isAuthReady: boolean) {
         break;
       case 'RETURN_ESTRUS':
         newStatus = 'IDLE';
-        weanDate = date; 
         statusUpdatedAt = new Date().toISOString();
         break;
       case 'CULL':
@@ -303,5 +305,16 @@ export function useSows(isAuthReady: boolean) {
     }
   };
 
-  return { sows, addSow, recordEvent, deleteSow, loading };
+  const updateSowLocation = async (sowId: string, cageId: string | null) => {
+    try {
+      await updateDoc(doc(db, 'sows', sowId), {
+        cageId: cageId || null,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `sows/${sowId}`);
+    }
+  };
+
+  return { sows, addSow, recordEvent, deleteSow, updateSowLocation, loading };
 }

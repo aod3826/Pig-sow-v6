@@ -503,7 +503,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
         {activeTab === 'INFO' && (
           <button 
             onClick={() => setActiveTab('WEIGHING')} 
-            className="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors"
+            className="w-full bg-gradient-to-r from-[#E91E63] to-[#F06292] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
           >
             ต่อไป: ชั่งน้ำหนัก <ChevronRight className="w-6 h-6" />
           </button>
@@ -518,7 +518,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
             </button>
             <button 
               onClick={() => setActiveTab('PAYMENT')} 
-              className="w-2/3 bg-emerald-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors"
+              className="w-2/3 bg-gradient-to-r from-[#E91E63] to-[#F06292] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             >
               ต่อไป: สรุปยอด <ChevronRight className="w-6 h-6" />
             </button>
@@ -535,7 +535,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
             <button 
               onClick={handleSubmit}
               disabled={isSaving}
-              className="w-2/3 bg-emerald-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors disabled:opacity-70"
+              className="w-2/3 bg-gradient-to-r from-[#E91E63] to-[#F06292] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-70"
             >
               <Save className="w-6 h-6" /> {isSaving ? 'กำลังบันทึก...' : 'บันทึกการขาย'}
             </button>
