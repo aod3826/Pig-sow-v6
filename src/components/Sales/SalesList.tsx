@@ -4,7 +4,7 @@ import { Plus, Search, FileText, Trash2, Printer, Mail, Loader2, ExternalLink } 
 import { formatDate } from '../../lib/utils';
 import SaleReceipt from './SaleReceipt';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../firebase';
 
@@ -49,12 +49,21 @@ export default function SalesList({ sales, onAddSale, onDeleteSale, onUpdateSale
       const receiptElement = document.getElementById(`receipt-${sale.id}`);
       if (!receiptElement) throw new Error('Receipt element not found');
 
-      const canvas = await html2canvas(receiptElement, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
+      // Use dom-to-image to bypass html2canvas computed style errors with modern CSS
+      const imgData = await domtoimage.toPng(receiptElement, {
+        bgcolor: '#ffffff',
+        width: receiptElement.clientWidth * 2,
+        height: receiptElement.clientHeight * 2,
+        style: {
+          transform: 'scale(2)',
+          transformOrigin: 'top left'
+        }
+      });
       
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      // Calculate correct height based on aspect ratio
+      const pdfHeight = (receiptElement.clientHeight * pdfWidth) / receiptElement.clientWidth;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       

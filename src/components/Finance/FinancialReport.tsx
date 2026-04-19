@@ -20,7 +20,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   'OTHER': 'อื่นๆ'
 };
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
+const COLORS = ['#E91E63', '#10B981', '#F06292', '#34D399', '#F48FB1', '#059669', '#F8BBD0', '#6EE7B7'];
 
 export default function FinancialReport({ isAuthReady }: FinancialReportProps) {
   const { sales, loading: salesLoading } = useSales(isAuthReady);

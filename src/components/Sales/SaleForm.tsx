@@ -32,6 +32,70 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
   ]);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [hasStartedWeighing, setHasStartedWeighing] = useState(false);
+
+  // Auto-protect against accidental exit
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasStartedWeighing) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasStartedWeighing]);
+
+  // Sync to local storage
+  useEffect(() => {
+    if (weighings.length > 1 || (weighings[0] && (weighings[0].grossWeight || weighings[0].tareWeight))) {
+      setHasStartedWeighing(true);
+      const draft = {
+        buyerName, buyerEmail, vehicleReg, saleType, date, totalPigsInput, pricePerKg, deductions, paymentStatus, weighings, activeTab
+      };
+      localStorage.setItem('pig_sale_draft', JSON.stringify(draft));
+    } else {
+      setHasStartedWeighing(false);
+    }
+  }, [weighings, buyerName, buyerEmail, vehicleReg, saleType, date, totalPigsInput, pricePerKg, deductions, paymentStatus, activeTab]);
+
+  // Load from local storage
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('pig_sale_draft');
+    if (savedDraft) {
+      if (window.confirm('พบข้อมูลการขายที่ยังทำไม่เสร็จค้างอยู่ คุณต้องการทำต่อหรือไม่? (หากกด ยกเลิก จะเริ่มรายการใหม่)')) {
+        try {
+          const draft = JSON.parse(savedDraft);
+          if (draft.buyerName) setBuyerName(draft.buyerName);
+          if (draft.buyerEmail) setBuyerEmail(draft.buyerEmail);
+          if (draft.vehicleReg) setVehicleReg(draft.vehicleReg);
+          if (draft.saleType) setSaleType(draft.saleType);
+          if (draft.date) setDate(draft.date);
+          if (draft.totalPigsInput) setTotalPigsInput(draft.totalPigsInput);
+          if (draft.pricePerKg) setPricePerKg(draft.pricePerKg);
+          if (draft.deductions) setDeductions(draft.deductions);
+          if (draft.paymentStatus) setPaymentStatus(draft.paymentStatus);
+          if (draft.weighings && draft.weighings.length > 0) setWeighings(draft.weighings);
+          if (draft.activeTab) setActiveTab(draft.activeTab);
+        } catch (e) {
+          console.error("Failed to parse draft");
+        }
+      } else {
+        localStorage.removeItem('pig_sale_draft');
+      }
+    }
+  }, []);
+
+  const handleCancel = () => {
+    if (hasStartedWeighing) {
+      if (window.confirm('🚨 คำเตือน: คุณมีข้อมูลชั่งน้ำหนักที่ยังไม่ได้บันทึก!\n\nคุณแน่ใจหรือไม่ที่จะยกเลิกการขายนี้? (ข้อมูลที่ชั่งทั้งหมดจะหายไป)')) {
+        localStorage.removeItem('pig_sale_draft');
+        onCancel();
+      }
+    } else {
+      onCancel();
+    }
+  };
 
   // Auto-update total pigs when weighings change
   useEffect(() => {
@@ -89,8 +153,8 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
       return;
     }
 
-    if (paymentStatus === 'UNPAID' && !signature) {
-      alert('กรุณาให้ผู้ซื้อเซ็นชื่อสำหรับรายการค้างชำระ');
+    if (!signature) {
+      alert('กรุณาให้ผู้ซื้อเซ็นชื่อยืนยันการทำรายการ');
       setShowSignaturePad(true);
       return;
     }
@@ -115,6 +179,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
         paymentStatus,
         signature: signature || undefined
       });
+      localStorage.removeItem('pig_sale_draft'); // Clear Draft on success
     } catch (error) {
       console.error(error);
       alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
@@ -131,7 +196,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
     <div className="flex flex-col h-full bg-slate-50 relative">
       {/* Header */}
       <div className="bg-white px-4 py-4 border-b flex items-center justify-between sticky top-0 z-30">
-        <button onClick={onCancel} className="p-2 -ml-2 rounded-full hover:bg-gray-100 flex items-center gap-1">
+        <button onClick={handleCancel} className="p-2 -ml-2 rounded-full hover:bg-gray-100 flex items-center gap-1">
           <ArrowLeft className="w-7 h-7 text-gray-700" />
           <span className="font-medium text-gray-700 text-base">ยกเลิก</span>
         </button>
@@ -448,7 +513,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
             <h3 className="text-lg font-bold text-gray-900 mb-4">สถานะการชำระเงิน</h3>
             <div className="flex gap-4">
               <button
-                onClick={() => { setPaymentStatus('PAID'); setSignature(null); }}
+                onClick={() => { setPaymentStatus('PAID'); if (!signature) setShowSignaturePad(true); }}
                 className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 border-2 transition-all ${
                   paymentStatus === 'PAID' 
                     ? 'border-green-500 bg-green-50 text-green-700' 
@@ -456,7 +521,7 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                 }`}
               >
                 <CheckCircle2 className={paymentStatus === 'PAID' ? 'text-green-500' : 'text-gray-400'} />
-                จ่ายแล้ว
+                เงินสด
               </button>
               <button
                 onClick={() => { setPaymentStatus('UNPAID'); if (!signature) setShowSignaturePad(true); }}
@@ -471,29 +536,33 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               </button>
             </div>
 
-            {paymentStatus === 'UNPAID' && (
-              <div className="mt-6 p-4 border-2 border-dashed border-orange-200 rounded-2xl bg-orange-50/30 flex flex-col items-center justify-center">
-                {signature ? (
-                  <div className="w-full flex flex-col items-center">
-                    <p className="text-sm text-gray-500 mb-2">ลายเซ็นผู้ซื้อ:</p>
-                    <img src={signature} alt="Signature" className="h-32 object-contain bg-white border rounded-lg mb-3 w-full max-w-xs" />
-                    <button 
-                      onClick={() => setShowSignaturePad(true)}
-                      className="text-sm text-orange-600 font-medium hover:underline"
-                    >
-                      เซ็นใหม่
-                    </button>
-                  </div>
-                ) : (
+            <div className={`mt-6 p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center ${
+              paymentStatus === 'UNPAID' ? 'border-orange-200 bg-orange-50/30' : 'border-green-200 bg-green-50/30'
+            }`}>
+              {signature ? (
+                <div className="w-full flex flex-col items-center">
+                  <p className="text-sm text-gray-500 mb-2">ลายเซ็นผู้ซื้อ:</p>
+                  <img src={signature} alt="Signature" className="h-32 object-contain bg-white border rounded-lg mb-3 w-full max-w-xs" />
                   <button 
                     onClick={() => setShowSignaturePad(true)}
-                    className="py-3 px-6 bg-orange-100 text-orange-700 font-bold rounded-2xl hover:bg-orange-200 transition-colors"
+                    className={`text-sm font-medium hover:underline ${paymentStatus === 'UNPAID' ? 'text-orange-600' : 'text-green-600'}`}
                   >
-                    คลิกเพื่อเซ็นชื่อผู้ค้างชำระ
+                    เซ็นใหม่
                   </button>
-                )}
-              </div>
-            )}
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowSignaturePad(true)}
+                  className={`py-3 px-6 font-bold rounded-2xl transition-colors ${
+                    paymentStatus === 'UNPAID' 
+                      ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' 
+                      : 'bg-green-100 text-green-700 hover:bg-green-200'
+                  }`}
+                >
+                  คลิกเพื่อเซ็นชื่อยืนยันรายการ
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

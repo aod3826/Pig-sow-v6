@@ -64,7 +64,7 @@ const Cage = ({
         </>
       ) : (
         <>
-          <span className={cn("text-gray-400 font-medium leading-none", viewMode === 'NORMAL' ? "text-[8px] sm:text-[9px] absolute top-1 left-1.5" : "text-[8px] sm:text-[9px]")}>
+          <span className={cn("text-gray-400 font-medium leading-none absolute", viewMode === 'NORMAL' ? "text-[8px] sm:text-[9px] top-1 left-1.5" : "text-[8px] sm:text-[9px] top-0.5 left-1")}>
             {viewMode === 'NORMAL' ? displayId : numberOnly}
           </span>
           {isBoarCage && viewMode === 'NORMAL' && (
