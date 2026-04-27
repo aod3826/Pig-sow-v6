@@ -22,6 +22,7 @@ import { signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateCha
 import { useUserProfile } from './hooks/useUserProfile';
 import UserProfileModal from './components/UserProfileModal';
 import FarmChat from './components/FarmChat';
+import InAppBrowserWarning from './components/InAppBrowserWarning';
 
 export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -134,6 +135,8 @@ export default function App() {
   return (
     <div className="min-h-[100dvh] bg-slate-200 flex justify-center print:bg-white">
       <div className="w-full max-w-2xl bg-slate-100 h-[100dvh] shadow-xl relative flex flex-col overflow-hidden print:max-w-none print:h-auto print:shadow-none print:bg-white print:overflow-visible">
+        <InAppBrowserWarning />
+        
         {/* Header */}
         <header className="bg-gradient-to-r from-[#E91E63] to-[#F06292] text-white p-4 shadow-md z-10 flex justify-between items-center shrink-0 print:hidden">
           <div className="flex items-center gap-3">

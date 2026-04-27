@@ -4,6 +4,7 @@ import { getAllTasks, EVENT_LABELS, STATUS_LABELS, getUpcomingTasksForSow } from
 import { cn, formatDate } from '../lib/utils';
 import { AlertCircle, Calendar, CheckCircle2, TrendingUp, HelpCircle, X, BellRing } from 'lucide-react';
 import { format } from 'date-fns';
+import InstallPrompt from './InstallPrompt';
 
 interface DashboardProps {
   sows: Sow[];
@@ -186,6 +187,8 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
           </div>
         </div>
       </div>
+      
+      <InstallPrompt />
 
       {notifPermission === 'default' && (
         <div className="bg-blue-50 border border-blue-200 rounded-3xl p-5 flex items-center justify-between shadow-sm">
