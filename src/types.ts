@@ -135,3 +135,13 @@ export interface ExpenseRecord {
   items: ExpenseItem[];
   createdAt?: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  text: string;
+  imageUrl?: string;
+  createdAt: string; // ISO string
+}

@@ -19,10 +19,8 @@ export default function SalesManager({ isAuthReady }: SalesManagerProps) {
     return (
       <SaleForm 
         sales={sales}
-        onSave={async (data) => {
-          await addSale(data);
-          setIsAdding(false);
-        }} 
+        onSave={addSale} 
+        onUpdateAfterSave={updateSale}
         onCancel={() => setIsAdding(false)} 
       />
     );

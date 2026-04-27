@@ -1,19 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { SaleRecord, WeighingRecord } from '../../types';
-import { ArrowLeft, Plus, Trash2, Save, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, List, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, List, LayoutGrid, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import SignaturePad from './SignaturePad';
+import SaleReceipt from './SaleReceipt';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../firebase';
 
 interface SaleFormProps {
   sales?: SaleRecord[];
-  onSave: (data: Omit<SaleRecord, 'id' | 'createdAt'>) => Promise<void>;
+  onSave: (data: Omit<SaleRecord, 'id' | 'createdAt'>) => Promise<string | undefined>;
   onCancel: () => void;
+  onUpdateAfterSave?: (id: string, data: Partial<SaleRecord>) => Promise<void>;
 }
 
-export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps) {
+export default function SaleForm({ sales = [], onSave, onCancel, onUpdateAfterSave }: SaleFormProps) {
   const [buyerName, setBuyerName] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
-  const [sellerName, setSellerName] = useState('นิพนธุ์');
+  const [sellerName, setSellerName] = useState('นิพนธ์ฟาร์ม');
   const [vehicleReg, setVehicleReg] = useState('');
   const [saleType, setSaleType] = useState('ขายเหมา');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -32,7 +38,10 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
   ]);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [saveStep, setSaveStep] = useState<'IDLE' | 'SAVING_DB' | 'GENERATING_PDF' | 'UPLOADING_CLOUD'>('IDLE');
   const [hasStartedWeighing, setHasStartedWeighing] = useState(false);
+  const [tempSaleForPdf, setTempSaleForPdf] = useState<SaleRecord | null>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   // Auto-protect against accidental exit
   useEffect(() => {
@@ -160,8 +169,9 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
     }
 
     setIsSaving(true);
+    setSaveStep('SAVING_DB');
     try {
-      await onSave({
+      const saleDataToSend: Omit<SaleRecord, 'id' | 'createdAt'> = {
         buyerName,
         buyerEmail,
         sellerName,
@@ -178,13 +188,64 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
         netTotal,
         paymentStatus,
         signature: signature || undefined
-      });
+      };
+
+      const newId = await onSave(saleDataToSend);
       localStorage.removeItem('pig_sale_draft'); // Clear Draft on success
-    } catch (error) {
+
+      if (newId && onUpdateAfterSave) {
+        setSaveStep('GENERATING_PDF');
+        // Prepare temp sale object for receipt rendering
+        const tempSale: SaleRecord = {
+          ...saleDataToSend,
+          id: newId,
+          createdAt: new Date().toISOString()
+        };
+        setTempSaleForPdf(tempSale);
+
+        // Wait for render
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const receiptElement = document.getElementById(`receipt-form-temp`);
+        if (receiptElement) {
+          try {
+            const canvas = await html2canvas(receiptElement, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              logging: false
+            });
+            
+            setSaveStep('UPLOADING_CLOUD');
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+            const pdfDataUri = pdf.output('datauristring');
+            const storageRef = ref(storage, `sales_receipts/${newId}/receipt.pdf`);
+            await uploadString(storageRef, pdfDataUri, 'data_url', {
+              contentType: 'application/pdf'
+            });
+            const url = await getDownloadURL(storageRef);
+            
+            // Update the record with the PDF URL
+            await onUpdateAfterSave(newId, { receiptUrl: url });
+          } catch (pdfError: any) {
+            console.error("PDF auto-upload failed:", pdfError);
+            // We don't block the user if PDF upload fails, since DB is already saved
+            alert(`คำเตือน: บันทึกข้อมูลสำเร็จ แต่ไม่สามารถอัปโหลดใบเสร็จ PDF ขึ้น Cloud ได้: ${pdfError?.message || 'Unknown error'}`);
+          }
+        }
+      }
+      onCancel(); // Close the form
+    } catch (error: any) {
       console.error(error);
-      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error?.message || ''}`);
     } finally {
       setIsSaving(false);
+      setSaveStep('IDLE');
     }
   };
 
@@ -347,6 +408,12 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                             className="w-full text-right px-2 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none font-bold"
                             value={w.grossWeight || ''}
                             onChange={e => handleChangeRow(w.id!, 'grossWeight', e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddRow();
+                              }
+                            }}
                             placeholder="0.0"
                           />
                         </td>
@@ -356,6 +423,12 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                             className="w-full text-right px-2 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none font-bold"
                             value={w.tareWeight || ''}
                             onChange={e => handleChangeRow(w.id!, 'tareWeight', e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddRow();
+                              }
+                            }}
                             placeholder="0.0"
                           />
                         </td>
@@ -412,6 +485,12 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                           className="w-full text-center px-2 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-2xl font-bold bg-white shadow-inner"
                           value={w.grossWeight || ''}
                           onChange={e => handleChangeRow(w.id!, 'grossWeight', e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddRow();
+                            }
+                          }}
                           placeholder="0.0"
                         />
                       </div>
@@ -422,6 +501,12 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
                           className="w-full text-center px-2 py-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none text-2xl font-bold bg-white shadow-inner"
                           value={w.tareWeight || ''}
                           onChange={e => handleChangeRow(w.id!, 'tareWeight', e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddRow();
+                            }
+                          }}
                           placeholder="0.0"
                         />
                       </div>
@@ -606,9 +691,22 @@ export default function SaleForm({ sales = [], onSave, onCancel }: SaleFormProps
               disabled={isSaving}
               className="w-2/3 bg-gradient-to-r from-[#E91E63] to-[#F06292] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-70"
             >
-              <Save className="w-6 h-6" /> {isSaving ? 'กำลังบันทึก...' : 'บันทึกการขาย'}
+              {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6" />} 
+              {saveStep === 'SAVING_DB' && 'กำลังบันทึกข้อมูล...'}
+              {saveStep === 'GENERATING_PDF' && 'กำลังเตรียมใบเสร็จ...'}
+              {saveStep === 'UPLOADING_CLOUD' && 'กำลังส่งขึ้น Cloud...'}
+              {saveStep === 'IDLE' && 'บันทึกการขาย'}
             </button>
           </>
+        )}
+      </div>
+
+      {/* Hidden Receipt for PDF generation */}
+      <div className="absolute top-[-9999px] left-[-9999px] w-[800px]">
+        {tempSaleForPdf && (
+          <div id="receipt-form-temp">
+            <SaleReceipt sale={tempSaleForPdf} />
+          </div>
         )}
       </div>
 

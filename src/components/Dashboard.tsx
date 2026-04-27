@@ -89,7 +89,7 @@ export default function Dashboard({ sows, onSelectSow }: DashboardProps) {
   const allTasks = getAllTasks(sows);
   const overdueTasks = allTasks.filter(t => t.status === 'OVERDUE');
   const todayTasks = allTasks.filter(t => t.status === 'TODAY');
-  const upcomingTasks = allTasks.filter(t => t.status === 'UPCOMING' && t.daysDiff <= 7); // Show next 7 days
+  const upcomingTasks = allTasks.filter(t => t.status === 'FUTURE' && t.daysDiff <= 7); // Show next 7 days
   
   const statusCounts = sows.reduce((acc, sow) => {
     acc[sow.status] = (acc[sow.status] || 0) + 1;

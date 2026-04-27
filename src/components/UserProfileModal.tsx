@@ -126,7 +126,7 @@ export default function UserProfileModal({ isOpen, onClose, userEmail, profile, 
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors mb-3 font-medium shadow-sm"
+            className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors mb-3 font-medium shadow-sm disabled:opacity-50"
           >
             <Upload size={18} />
             อัปโหลดรูปโปรไฟล์ใหม่

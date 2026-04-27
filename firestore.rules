@@ -37,5 +37,9 @@ service cloud.firestore {
     match /expenses/{expenseId} {
       allow read, write: if isAuthenticated();
     }
+    // Allow authenticated users to read and write messages
+    match /messages/{messageId} {
+      allow read, write: if isAuthenticated();
+    }
   }
 }

@@ -21,6 +21,7 @@ import { auth } from './firebase';
 import { signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
 import { useUserProfile } from './hooks/useUserProfile';
 import UserProfileModal from './components/UserProfileModal';
+import FarmChat from './components/FarmChat';
 
 export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -257,6 +258,8 @@ export default function App() {
             </button>
           </nav>
         )}
+
+        <FarmChat />
       </div>
     </div>
   );

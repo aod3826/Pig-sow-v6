@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { SaleRecord } from '../../types';
-import { Plus, Search, FileText, Trash2, Printer, Mail, Loader2, ExternalLink } from 'lucide-react';
+import { Plus, Search, FileText, Trash2, Printer, Mail, Loader2, ExternalLink, Download, Cloud } from 'lucide-react';
 import { formatDate } from '../../lib/utils';
 import SaleReceipt from './SaleReceipt';
 import jsPDF from 'jspdf';
-import domtoimage from 'dom-to-image-more';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import html2canvas from 'html2canvas';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../firebase';
 
 interface SalesListProps {
@@ -36,9 +36,7 @@ export default function SalesList({ sales, onAddSale, onDeleteSale, onUpdateSale
     }, 100);
   };
 
-  const handleSendEmail = async (sale: SaleRecord) => {
-    if (!sale.buyerEmail) return;
-    
+  const handleDownloadPdf = async (sale: SaleRecord) => {
     setIsGeneratingPdf(sale.id);
     setPrintSale(sale);
 
@@ -49,42 +47,57 @@ export default function SalesList({ sales, onAddSale, onDeleteSale, onUpdateSale
       const receiptElement = document.getElementById(`receipt-${sale.id}`);
       if (!receiptElement) throw new Error('Receipt element not found');
 
-      // Use dom-to-image to bypass html2canvas computed style errors with modern CSS
-      const imgData = await domtoimage.toPng(receiptElement, {
-        bgcolor: '#ffffff',
-        width: receiptElement.clientWidth * 2,
-        height: receiptElement.clientHeight * 2,
-        style: {
-          transform: 'scale(2)',
-          transformOrigin: 'top left'
-        }
+      // Capture with html2canvas (now safe since we removed Tailwind oklch colors from receipt)
+      const canvas = await html2canvas(receiptElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
       });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      // Calculate correct height based on aspect ratio
-      const pdfHeight = (receiptElement.clientHeight * pdfWidth) / receiptElement.clientWidth;
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       
       // Save locally
       pdf.save(`ใบชั่งน้ำหนัก_${sale.buyerName}_${sale.date}.pdf`);
 
-      const subject = `ใบสรุปการขายหมูขุน นิพนธุ์ฟาร์ม - ${formatDate(sale.date)}`;
-      const body = `เรียน คุณ ${sale.buyerName},\n\nสรุปรายการขายหมูขุน วันที่ ${formatDate(sale.date)}\nทะเบียนรถ: ${sale.vehicleReg || '-'}\n\nจำนวนหมู: ${sale.totalPigs} ตัว\nน้ำหนักสุทธิรวม: ${sale.totalNetWeight.toFixed(1)} กก.\nน้ำหนักเฉลี่ย: ${sale.avgWeight.toFixed(2)} กก./ตัว\nราคาขาย: ${sale.pricePerKg} บาท/กก.\n\nยอดรวม: ${sale.grossTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nหักค่าใช้จ่าย: ${sale.deductions.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nยอดสุทธิ (NET TOTAL): ${sale.netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\nสถานะการชำระเงิน: ${sale.paymentStatus === 'PAID' ? 'ชำระเงินแล้ว' : 'ค้างชำระ'}\n\nระบบได้ดาวน์โหลดไฟล์ PDF ใบชั่งน้ำหนักลงในเครื่องของคุณแล้ว กรุณาแนบไฟล์ (Attach file) เพิ่มเติมก่อนส่งอีเมลนี้ด้วยครับ\n\nขอขอบคุณที่ใช้บริการ\nนิพนธุ์ฟาร์ม`;
-
-      const mailtoLink = `mailto:${sale.buyerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      // Upload to Cloud Storage if not already uploaded
+      if (!sale.receiptUrl) {
+        const pdfDataUri = pdf.output('datauristring');
+        const storageRef = ref(storage, `sales_receipts/${sale.id}/receipt.pdf`);
+        await uploadString(storageRef, pdfDataUri, 'data_url', {
+          contentType: 'application/pdf'
+        });
+        const url = await getDownloadURL(storageRef);
+        
+        // Update DB
+        await onUpdateSale(sale.id, { receiptUrl: url });
+      }
       
-      const a = document.createElement('a');
-      a.href = mailtoLink;
-      a.click();
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating PDF:', error);
-      alert('เกิดข้อผิดพลาดในการสร้างไฟล์ PDF');
+      const errorMessage = error?.message || 'ไม่พบรายละเอียดสาเหตุ';
+      alert(`เกิดข้อผิดพลาดในการสร้างหรืออัปโหลด PDF: ${errorMessage}\n\nกรุณาตรวจสอบว่าคุณได้ตั้งค่า Storage Rules ให้เป็น Public หรือยัง?`);
     } finally {
       setIsGeneratingPdf(null);
     }
+  };
+
+  const handleSendEmail = (sale: SaleRecord) => {
+    if (!sale.buyerEmail) return;
+    
+    const subject = `ใบสรุปการขายหมูขุน นิพนธ์ฟาร์ม - ${formatDate(sale.date)}`;
+    const body = `เรียน คุณ ${sale.buyerName},\n\nสรุปรายการขายหมูขุน วันที่ ${formatDate(sale.date)}\nทะเบียนรถ: ${sale.vehicleReg || '-'}\n\nจำนวนหมู: ${sale.totalPigs} ตัว\nน้ำหนักสุทธิรวม: ${sale.totalNetWeight.toFixed(1)} กก.\nน้ำหนักเฉลี่ย: ${sale.avgWeight.toFixed(2)} กก./ตัว\nราคาขาย: ${sale.pricePerKg} บาท/กก.\n\nยอดรวม: ${sale.grossTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nหักค่าใช้จ่าย: ${sale.deductions.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\nยอดสุทธิ (NET TOTAL): ${sale.netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\nสถานะการชำระเงิน: ${sale.paymentStatus === 'PAID' ? 'เงินสด' : 'ค้างชำระ'}\n\nขอขอบคุณที่ใช้บริการ\nนิพนธ์ฟาร์ม`;
+
+    const mailtoLink = `mailto:${sale.buyerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    const a = document.createElement('a');
+    a.href = mailtoLink;
+    a.click();
   };
 
   return (
@@ -136,26 +149,33 @@ export default function SalesList({ sales, onAddSale, onDeleteSale, onUpdateSale
                     </h3>
                     <p className="text-sm text-gray-500">{formatDate(sale.date)} • ทะเบียน: {sale.vehicleReg || '-'}</p>
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-1">
                     {sale.receiptUrl && (
                       <a 
                         href={sale.receiptUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                        title="ดูใบเสร็จ PDF"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors text-xs font-bold"
+                        title="ดูใบเสร็จบน Cloud"
                       >
-                        <ExternalLink className="w-5 h-5" />
+                        <Cloud className="w-4 h-4" /> ดูใบเสร็จ
                       </a>
                     )}
+                    <button 
+                      onClick={() => handleDownloadPdf(sale)}
+                      disabled={isGeneratingPdf === sale.id}
+                      className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                      title={sale.receiptUrl ? "ดาวน์โหลด PDF ลงเครื่อง" : "สร้างและอัปโหลดไป Cloud"}
+                    >
+                      {isGeneratingPdf === sale.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                    </button>
                     {sale.buyerEmail && (
                       <button 
                         onClick={() => handleSendEmail(sale)}
-                        disabled={isGeneratingPdf === sale.id}
-                        className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
-                        title={sale.receiptUrl ? "ส่งอีเมลอีกครั้ง" : "สร้างลิงก์และส่งอีเมล"}
+                        className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="ร่างอีเมลส่งให้ลูกค้า"
                       >
-                        {isGeneratingPdf === sale.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
+                        <Mail className="w-5 h-5" />
                       </button>
                     )}
                     <button 
